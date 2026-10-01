@@ -33,14 +33,16 @@ test('production artifact serves every HTML reference, module import and icon un
     const manifest=await (await fetch(origin+BASE+'manifest.webmanifest')).json();
     for(const property of ['id','scope','start_url'])assert.equal(new URL(manifest[property],origin+BASE+'manifest.webmanifest').pathname,BASE);
     for(const icon of manifest.icons){const response=await fetch(new URL(icon.src,origin+BASE));assert.equal(response.status,200);assert.equal(response.headers.get('content-type'),'image/png');}
+    for(const file of production.assets.filter(f=>f.endsWith('.mp3'))){const response=await fetch(origin+BASE+file);assert.equal(response.headers.get('content-type'),'audio/mpeg');assert.ok((await response.arrayBuffer()).byteLength>0);}
   } finally {await new Promise(resolve=>server.close(resolve));}
 });
 
-function workerHarness(scope='https://example.test/Durak-Trainer/') {
+function workerHarness(scope='https://example.test/Durak-Trainer/',missingAudio=false) {
   const listeners={},stores=new Map(),deleted=[];let claimed=false;
   const caches={
     async open(key){if(!stores.has(key))stores.set(key,new Map());const store=stores.get(key);return {
       async addAll(requests){for(const req of requests)store.set(req.url,new Response(`cached:${req.url}`));},
+      async add(req){if(missingAudio)throw Error('Audio missing');store.set(req.url,new Response(`cached:${req.url}`));},
       async match(url){return store.get(url)?.clone();}
     };},
     async keys(){return [...stores.keys()];},async delete(key){deleted.push(key);return stores.delete(key);}
@@ -61,6 +63,11 @@ test('service worker does not intercept unrelated resources, POSTs or other site
   for(const request of [new Request('https://example.test/other/index.html'),new Request('https://example.test/Durak-Trainer/not-an-asset'),new Request('https://elsewhere.test/Durak-Trainer/index.html'),new Request('https://example.test/Durak-Trainer/index.html',{method:'POST'})]) {
     let handled=false;h.listeners.fetch({request,respondWith:()=>handled=true});assert.equal(handled,false);
   }
+});
+test('missing optional audio does not prevent offline game installation',async()=>{
+  const h=workerHarness('https://example.test/Durak-Trainer/',true);await h.lifecycle('install');await h.lifecycle('activate');
+  let response;h.listeners.fetch({request:new Request('https://example.test/Durak-Trainer/'),respondWith:p=>response=p});
+  assert.equal((await response).status,200);
 });
 test('cache upgrades remove only old versions of this exact app scope',async()=>{
   const h=workerHarness(),old='durak-pwa:https://example.test/Durak-Trainer/:old',other='durak-pwa:https://example.test/another/:old';

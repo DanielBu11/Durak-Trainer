@@ -1,7 +1,10 @@
 import {createGame, act, legalActions, observation} from '../game/engine.js';
 import {chooseAction} from '../bots/strategy.js';
 import {createTrainingUI} from './trainingUI.js';
+import {setupAudio} from './audioUI.js';
+import {audioEvents} from '../audio/events.js';
 const $=id=>document.getElementById(id);
+const audio=setupAudio($('audio-settings'));
 let state=createGame(), timer, selected=null;
 const revealed=new Set(), revealTimers=new Map();
 function clearReveals(){revealed.clear();for(const t of revealTimers.values())clearTimeout(t);revealTimers.clear();}
@@ -9,7 +12,7 @@ function revealHand(id){clearTimeout(revealTimers.get(id));if(revealed.has(id))r
 const trainingUI=createTrainingUI({root:$('training-panel'),onReveal:id=>{revealHand(id);$(`bot${id}`).scrollIntoView({block:'center',behavior:'auto'});},onChange:()=>{if(trainingUI.isPaused())clearReveals();render();}});
 const suitName={'♠':'Pik','♥':'Herz','♦':'Karo','♣':'Kreuz'};
 function card(c, button=false) {const el=document.createElement(button?'button':'div');el.className=`card ${['♥','♦'].includes(c.suit)?'red':''}`;el.innerHTML=`<span>${c.rank}</span><span class="suit">${c.suit}</span><span class="corner">${c.rank}</span>`;el.setAttribute('aria-label',`${suitName[c.suit]} ${c.rank}`);return el;}
-function move(action){if(trainingUI.isPaused())return;try{state=act(state,action);selected=null;render();}catch(error){$('status').textContent=error.message;}}
+function move(action){if(trainingUI.isPaused())return;try{const before=state;state=act(state,action);for(const event of audioEvents(before,state,action))void audio.play(event);selected=null;render();}catch(error){$('status').textContent=error.message;}}
 function botStep(){if(!trainingUI.isPaused() && !state.finished && state.actor!==0)move(chooseAction(observation(state),$('difficulty').value));}
 function schedule(){clearTimeout(timer);if(!trainingUI.isPaused() && !state.finished && state.actor!==0 && $('speed').value!=='manual')timer=setTimeout(botStep,Number($('speed').value));}
 function render(){
@@ -35,7 +38,7 @@ function render(){
   trainingUI.update(observation(state,0));schedule();
 }
 $('take').onclick=()=>move({type:'take'});$('pass').onclick=()=>move({type:'pass'});$('step').onclick=botStep;
-$('new').onclick=()=>{clearTimeout(timer);clearReveals();selected=null;state=createGame();trainingUI.reset(observation(state,0));render();};
+$('new').onclick=()=>{clearTimeout(timer);clearReveals();selected=null;state=createGame();void audio.play('shuffle');trainingUI.reset(observation(state,0));render();};
 $('training').onchange=()=>{clearReveals();$('training-label').textContent=$('training').checked?'Training AN':'Training AUS';trainingUI.setEnabled($('training').checked);};$('speed').onchange=scheduleAndRender;function scheduleAndRender(){render();}$('difficulty').onchange=schedule;
 render();
 if('serviceWorker' in navigator && window.isSecureContext){navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{$('pwa-status').textContent='Offline-Unterstützung aktiv. Nach dem ersten Laden ist die App ohne Internet nutzbar.';}).catch(()=>{$('pwa-status').textContent='Offline-Unterstützung konnte nicht aktiviert werden. Online kannst du weiterspielen.';});}else $('pwa-status').textContent='Offline-Installation benötigt HTTPS oder localhost.';

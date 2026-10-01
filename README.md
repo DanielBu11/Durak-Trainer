@@ -2,6 +2,10 @@
 
 Kleine lokale Web-App ohne Bibliotheken, Installation von Paketen oder Backend. 36 Karten, ein Mensch, zwei Bots. Alle Spielinformationen bleiben im Browser. Ein Neuladen beginnt eine neue Partie.
 
+## Audio
+
+Unter **Audio** stehen Musik und Soundeffekte mit getrennten Schaltern und Lautstärken bereit (Musik 15 %, Effekte 65 %). Freischaltung erfolgt beim ersten echten Tippen/Klicken. Nach Rückkehr aus dem Hintergrund gegebenenfalls erneut tippen. Die bereitgestellte Musik und Kartenaufnahmen sind eingebunden; `win.mp3` und `lose.mp3` fehlen noch und bleiben harmlos stumm. Exakte Ordner, Dateinamen, Quellenzuordnung und iPhone-Prüfschritte: **[AUDIO.md](AUDIO.md)**.
+
 ## Windows starten
 
 Voraussetzung: Node.js 20 oder neuer.

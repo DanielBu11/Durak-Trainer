@@ -31,7 +31,8 @@ export async function build() {
   for(const asset of assets) hash.update(asset).update(await readFile(path.join(outputRoot,asset)));
   const version=hash.digest('hex').slice(0,16);
   const generated=worker.replace(/const VERSION = '[^']+';/,`const VERSION = '${version}';`)
-    .replace(/\/\* ASSETS_START \*\/[\s\S]*?\/\* ASSETS_END \*\//,`/* ASSETS_START */\nconst ASSETS = ${JSON.stringify(assets.map(f=>'./'+f))};\n/* ASSETS_END */`);
+    .replace(/\/\* ASSETS_START \*\/[\s\S]*?\/\* ASSETS_END \*\//,`/* ASSETS_START */\nconst ASSETS = ${JSON.stringify(assets.filter(f=>!f.endsWith('.mp3')).map(f=>'./'+f))};\n/* ASSETS_END */`)
+    .replace(/\/\* AUDIO_START \*\/[\s\S]*?\/\* AUDIO_END \*\//,`/* AUDIO_START */\nconst AUDIO_ASSETS = ${JSON.stringify(assets.filter(f=>f.endsWith('.mp3')).map(f=>'./'+f))};\n/* AUDIO_END */`);
   await writeFile(path.join(outputRoot,'sw.js'),generated);
   console.log(`Production: _site (${assets.length} cached assets, version ${version})`);
   return {assets,version};
