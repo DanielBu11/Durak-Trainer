@@ -143,8 +143,51 @@ Die Engine und Bot-Strategien müssen dafür nicht verändert werden. Level 5–
 
 ## PWA und iPhone
 
-Auf dem PC ist `localhost` ein sicherer Kontext. Der Service Worker speichert die App beim ersten Laden; danach ist sie offline nutzbar. Der Spielstand selbst wird nicht gespeichert. Bei Änderungen die Cache-Version in `dist/sw.js` erhöhen und alle App-Tabs schließen, damit die neue Version aktiviert wird.
+Auf dem PC ist `localhost` ein sicherer Kontext. Der Service Worker speichert die App beim ersten vollständigen Laden; danach ist sie offline nutzbar. Der Spielstand selbst wird nicht gespeichert. Der Production-Build erzeugt automatisch eine Cache-Version aus allen ausgelieferten Inhalten. Neue Versionen werden im Hintergrund vollständig geladen und nach Schließen aller App-Fenster aktiviert, ohne eine laufende Partie zu unterbrechen. Für Änderungen am lokalen Entwicklungsserver die `development`-Version in `dist/sw.js` erhöhen.
 
-Für das iPhone im gleichen WLAN ist die Oberfläche unter `http://<Windows-IP>:5173` erreichbar, sofern die Windows-Firewall den Zugriff erlaubt. **Für eine installierbare Offline-PWA auf dem iPhone ist HTTPS mit einem vom iPhone vertrauten Zertifikat erforderlich.** Eine HTTP-LAN-Adresse bietet das nicht. Später die statischen Dateien über HTTPS bereitstellen: den Inhalt von `dist/` als Website-Wurzel verwenden und `src/` daneben als Unterordner `src/` kopieren. Kein Backend nötig; Unterpfade werden durch relative URLs unterstützt. Anschließend in Safari: Teilen → Zum Home-Bildschirm.
+Für das iPhone im gleichen WLAN ist die Oberfläche unter `http://<Windows-IP>:5173` erreichbar, sofern die Windows-Firewall den Zugriff erlaubt. **Für eine installierbare Offline-PWA auf dem iPhone ist HTTPS erforderlich.** GitHub Pages stellt HTTPS bereit. Die veröffentlichte Adresse in Safari öffnen, einmal vollständig laden (unter Spielregeln & Installation steht dann „Offline-Unterstützung aktiv“), anschließend **Teilen → Zum Home-Bildschirm**. Falls angeboten, **Als Web-App öffnen** aktivieren. Danach lässt sich die App ohne Internet starten und eine neue Partie spielen. Vorhandene Spielstände überleben weiterhin keinen Neustart; Statistiken sind lokal je Browser/Installation gespeichert.
 
-Die PWA-Dateien und Apple-Touch-Icons sind enthalten. Installation und Offline-Verhalten auf einem echten iPhone müssen nach HTTPS-Bereitstellung geprüft werden. Es wurde nichts veröffentlicht.
+Es werden ausschließlich die notwendigen statischen App-Dateien vorab gespeichert. Kein Laufzeit-Cache für fremde URLs, API-Antworten oder beliebige Anfragen. Cache-Namen enthalten den App-Scope, sodass andere Projekte derselben GitHub-Pages-Domain nicht gelöscht werden. Die echte iPhone-Installation ist nach dem ersten Deployment auf dem Gerät zu prüfen.
+
+## GitHub Pages
+
+Repository: https://github.com/DanielBu11/Durak-Trainer
+
+Erwartete URL: **https://danielbu11.github.io/Durak-Trainer/**
+
+Es wird kein Vite und kein Client-Side-Router verwendet. Alle HTML-, Modul-, Manifest- und Service-Worker-Verweise sind relativ und funktionieren unter `/Durak-Trainer/`. Reloads der Startseite brauchen deshalb keinen 404-Redirect. Die URL mit abschließendem `/` verwenden.
+
+### Production lokal prüfen
+
+```powershell
+cd C:\Users\danie\Documents\Automaten\durak
+npm.cmd ci --ignore-scripts --no-audit --no-fund
+npm.cmd run build
+npm.cmd test
+npm.cmd run preview
+```
+
+Dann **http://localhost:4173/Durak-Trainer/** öffnen. Die Vorschau liefert nur den gebauten `_site/`-Ordner aus und emuliert den Pages-Unterpfad. `dist/` enthält weiterhin die bearbeitbaren statischen Quelldateien; `src/` die Module. Der Build kopiert beide zusammen nach `_site/`, erstellt `.nojekyll` und erzeugt die vollständige Offline-Dateiliste samt Inhaltsversion. `_site/` ist generiert und wird nicht eingecheckt. Es gibt keine npm-Abhängigkeiten; die Lockdatei ermöglicht trotzdem ein reproduzierbares `npm ci` im Workflow.
+
+### GitHub-Einstellung (einmalig, vor dem ersten Push)
+
+1. Im Repository **Settings → Pages** öffnen.
+2. Unter **Build and deployment → Source** genau **GitHub Actions** auswählen.
+3. Keine Branch-/Ordnerquelle und keinen zusätzlichen Workflow auswählen. **Custom domain** leer lassen; **Enforce HTTPS** aktiviert lassen bzw. aktivieren, sobald verfügbar.
+4. Danach die unten genannten Änderungen auf `main` pushen. Unter **Actions → Deploy GitHub Pages** den Lauf prüfen. Alternativ dort **Run workflow → main → Run workflow** verwenden.
+
+`.github/workflows/pages.yml` installiert mit `npm ci`, baut, führt sämtliche Tests aus und deployed erst nach Erfolg. Verwendet werden die offiziellen `configure-pages`, `upload-pages-artifact` und `deploy-pages` Actions mit dem Environment `github-pages`. Es wird kein Personal Access Token und kein `gh-pages`-Branch benötigt. Bei Repository-Regeln muss GitHub Actions erlaubt sein und das Environment Deployments von `main` zulassen.
+
+### Commit und Push
+
+Remote `origin` zeigt bereits auf das oben genannte Repository, der aktuelle Branch ist `main`.
+
+```powershell
+cd C:\Users\danie\Documents\Automaten\durak
+git status
+git add .github/workflows/pages.yml .gitignore package.json package-lock.json scripts/build.mjs scripts/preview.mjs tests/deployment.test.js dist/sw.js dist/manifest.webmanifest README.md
+git commit -m "Configure GitHub Pages build and offline PWA"
+git push -u origin main
+```
+
+Referenz: https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages

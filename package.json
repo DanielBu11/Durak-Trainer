@@ -1,1 +1,1 @@
-{"name":"durak-training","private":true,"type":"module","scripts":{"start":"node server.mjs","test":"node --test","benchmark":"node scripts/benchmark-bots.mjs"},"engines":{"node":">=20"}}
+{"name":"durak-training","private":true,"type":"module","scripts":{"start":"node server.mjs","build":"node scripts/build.mjs","preview":"node scripts/preview.mjs","test":"node --test","benchmark":"node scripts/benchmark-bots.mjs"},"engines":{"node":">=20"}}
