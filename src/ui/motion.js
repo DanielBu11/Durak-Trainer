@@ -43,7 +43,7 @@ export function animateMove(snapshot, before, after, action, events) {
   const collected=collectionFeedback(events);
   if(collected){
     const target=document.getElementById(collected.target);
-    const targetBox=rect(target);
+    const targetBox=rect(collected.kind==='discard'?(target?.querySelector?.('.back, .card, .empty-stock')||target):target);
     if(!targetBox)return;
     // If a player is offscreen, land at a named viewport-edge marker instead of
     // making cards disappear beyond the screen. Never redirect to another hand.

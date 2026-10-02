@@ -5,7 +5,7 @@ export const PLAYER_LABELS=['Deine Hand','Uhu','Aal'];
 export function collectionFeedback(events) {
   const event=events.find(e=>e.type==='pickup'||e.type==='discard');
   if(!event)return null;
-  if(event.type==='discard')return {kind:'discard',target:'discard-target',label:'Ablage',title:'Verteidigt!',detail:'Karten gehen aus dem Spiel',cards:event.cards};
+  if(event.type==='discard')return {kind:'discard',target:'stock',label:'Stapel',title:'Verteidigt!',detail:'Karten gehen aus dem Spiel',cards:event.cards};
   return {kind:'pickup',target:PLAYER_TARGETS[event.player],label:PLAYER_LABELS[event.player],title:'Aufgenommen!',
     detail:`${event.player===0?'Du nimmst':PLAYER_LABELS[event.player]+' nimmt'} ${event.cards.length} ${event.cards.length===1?'Karte':'Karten'}`,cards:event.cards};
 }

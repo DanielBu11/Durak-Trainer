@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {animateMove,motionFinished,cancelMotion} from '../src/ui/motion.js';
 function environment(reduced=false){
  const animations=[],nodes=[],box={left:10,top:20,width:44,height:66};
- const targets={'hand-target':{...box,left:300},bot1:{...box,left:100},bot2:{...box,left:600},'discard-target':{...box,left:900}};
+ const targets={'hand-target':{...box,left:300},bot1:{...box,left:100},bot2:{...box,left:600},'stock':{...box,left:900}};
  const node=()=>{const n={dataset:{card:'x'},className:'',style:{},setAttribute(){},removeAttribute(){},getBoundingClientRect:()=>box,animate(frames,options){animations.push({frames,options});return {finished:Promise.resolve(),cancel(){}};},remove(){this.removed=true;}};n.classList={contains:c=>n.className.includes(c)};return n;};
  const oldDoc=globalThis.document,oldMedia=globalThis.matchMedia;
  globalThis.matchMedia=()=>({matches:reduced});
  globalThis.document={querySelectorAll:()=>[],getElementById:id=>({getBoundingClientRect:()=>targets[id]||box}),createElement:node,body:{append(n){nodes.push(n);}}};
  return {box,node,targets,animations,nodes,restore(){globalThis.document=oldDoc;globalThis.matchMedia=oldMedia;}};
 }
-for(const [kind,player,target] of [['pickup',0,'hand-target'],['pickup',1,'bot1'],['pickup',2,'bot2'],['discard',null,'discard-target']]){
+for(const [kind,player,target] of [['pickup',0,'hand-target'],['pickup',1,'bot1'],['pickup',2,'bot2'],['discard',null,'stock']]){
  test(`${kind} recipient ${player}: all table cards land only at ${target}, never at refill recipients`,async()=>{
  const e=environment();try{
  const snapshot={table:[{id:'x',node:e.node(),box:e.box},{id:'y',node:e.node(),box:e.box}]};
