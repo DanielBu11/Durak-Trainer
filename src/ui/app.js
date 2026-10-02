@@ -42,11 +42,13 @@ function navigateHistory(index){
   render();
 }
 function renderHistory(){
+  const training=$('training').checked;
+  $('history-controls').hidden=!training;
   $('history-back').disabled=history.index===0;$('history-forward').disabled=!history.isPast;
   $('history-start').disabled=history.index===0;$('history-latest').disabled=!history.isPast;
   $('history-position').textContent=(history.isPast?'Rückblick':'Aktuell')+' · '+history.index+' / '+(history.length-1);
   $('history-controls').classList.toggle('in-past',history.isPast);
-  $('history-note').hidden=!history.isPast;
+  $('history-note').hidden=!training||!history.isPast;
 }
 let feedbackTimer;
 function showMoveFeedback(before,events,action){
