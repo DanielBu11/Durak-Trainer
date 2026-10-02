@@ -3,6 +3,7 @@ import {SUITS, RANKS} from '../game/cards.js';
 export const suitName = {'♠':'Pik','♥':'Herz','♦':'Karo','♣':'Kreuz'};
 export function card(c, button=false) {
   const el=document.createElement(button?'button':'div');
+  el.dataset.card=c.id;
   el.className=`card ${['♥','♦'].includes(c.suit)?'red':''}`;
   el.innerHTML=`<span class="card-index"><span>${c.rank}</span><span>${c.suit}</span></span><span class="suit">${c.suit}</span><span class="corner">${c.rank}</span>`;
   el.setAttribute('aria-label',`${suitName[c.suit]} ${c.rank}`);
