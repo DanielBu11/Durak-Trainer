@@ -99,6 +99,9 @@ export function createTrainingUI({root, onChange}) {
     });
   }
   return {
+    // Restore without replaying events or scoring a question a second time.
+    snapshot(){return structuredClone({state,quiz,answer,result,picking,analysisOpen,statsOpen,stats});},
+    restore(saved,publicView){({state,quiz,answer,result,picking,analysisOpen,statsOpen,stats}=structuredClone(saved));view=publicView;if(storage)saveStats(storage,stats);render();},
     isPaused: paused,
     update(publicView) {view=publicView;state=observeTraining(state,view);render();},
     setEnabled(enabled) {state={...configureTraining(state,{enabled}),completedRound:null};quiz=null;picking=null;result=null;analysisOpen=false;redraw();},

@@ -1,5 +1,10 @@
 // Presentation only: DOM snapshots plus already-public transition events.
 // No timers advance the game, and animations never trigger audio or actions.
+export const COLLECTION_MS=580;
+const running=new Set();
+function track(animation){running.add(animation);animation.finished.then(()=>running.delete(animation),()=>running.delete(animation));return animation;}
+export function cancelMotion(){for(const animation of running)animation.cancel();running.clear();document.querySelectorAll('.motion-card').forEach(el=>el.remove());}
+export function motionFinished(){return Promise.allSettled([...running].map(a=>a.finished));}
 const rect = el => el?.getBoundingClientRect();
 const player = id => document.getElementById(id === 0 ? 'hand' : `bot${id}`);
 export function captureMotion(actor) {
@@ -13,10 +18,11 @@ function fly(node, from, to) {
   node.className='card motion-card'+(node.classList.contains('draw-back')?' draw-back':'')+(node.classList.contains('red')?' red':'');
   Object.assign(node.style,{left:`${from.left}px`,top:`${from.top}px`,width:`${from.width}px`,height:`${from.height}px`});
   document.body.append(node);
-  const animation=node.animate([
+  const animation=track(node.animate([
     {transform:'translate(0,0) scale(1)',opacity:.9},
-    {transform:`translate(${to.left-from.left}px,${to.top-from.top}px) scale(${Math.min(1,to.width/from.width)})`,opacity:0}
-  ],{duration:220,easing:'cubic-bezier(.2,.7,.3,1)'});
+    {transform:`translate(${(to.left-from.left)*.8}px,${(to.top-from.top)*.8}px) scale(.9)`,opacity:.9,offset:.8},
+    {transform:`translate(${to.left-from.left}px,${to.top-from.top}px) scale(.8)`,opacity:0}
+  ],{duration:COLLECTION_MS,easing:'cubic-bezier(.25,.6,.3,1)'}));
   animation.finished.then(()=>node.remove(),()=>node.remove());
 }
 export function animateMove(snapshot, before, after, action, events) {
@@ -25,7 +31,7 @@ export function animateMove(snapshot, before, after, action, events) {
   if(laid){
     const destination=rect(laid), origin=before.actor===0?snapshot.hand.find(c=>c.id===action.card)?.box:snapshot.source;
     // Animate the actual final card: its rank stays readable throughout landing.
-    if(origin)laid.animate([{transform:`translate(${origin.left-destination.left}px,${origin.top-destination.top}px)`,opacity:.4},{transform:'translate(0,0)',opacity:1}],{duration:220,easing:'ease-out'});
+    if(origin)track(laid.animate([{transform:`translate(${origin.left-destination.left}px,${origin.top-destination.top}px)`,opacity:.4},{transform:'translate(0,0)',opacity:1}],{duration:220,easing:'ease-out'}));
   }
   const collected=events.find(e=>e.type==='pickup'||e.type==='discard');
   if(collected){
