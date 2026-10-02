@@ -105,6 +105,6 @@ export function createTrainingUI({root, onChange}) {
     isPaused: paused,
     update(publicView) {view=publicView;state=observeTraining(state,view);render();},
     setEnabled(enabled) {state={...configureTraining(state,{enabled}),completedRound:null};quiz=null;picking=null;result=null;analysisOpen=false;redraw();},
-    reset(publicView) {state={...createTrainingState(),enabled:state.enabled,level:state.level};quiz=null;picking=null;result=null;analysisOpen=false;view=publicView;render();},
+    reset(publicView) {state={...createTrainingState(),enabled:state.enabled,level:state.level};quiz=null;answer=null;picking=null;result=null;analysisOpen=false;view=publicView;render();},
   };
 }

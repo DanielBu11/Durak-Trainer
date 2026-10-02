@@ -1,3 +1,4 @@
+import {startFreshRound, roundResult, createResultGate, canInspectStock} from './roundLifecycle.js';
 import {createHistory, createBotScheduler} from './history.js';
 import {captureMotion, animateMove, cancelMotion, motionFinished} from './motion.js';
 import {card, suitName, stockDisplay, renderDiscardOverview} from './cards.js';
@@ -12,6 +13,7 @@ const $=id=>document.getElementById(id);
 const audio=setupAudio($('audio-settings'));
 let state=createGame(), selected=null, history, moving=false, motionEpoch=0;
 const botScheduler=createBotScheduler();
+const resultGate=createResultGate();
 const revealed=new Set(), revealTimers=new Map();
 function clearReveals(){revealed.clear();for(const t of revealTimers.values())clearTimeout(t);revealTimers.clear();}
 function revealHand(id){clearTimeout(revealTimers.get(id));if(revealed.has(id))revealed.delete(id);else{revealed.add(id);revealTimers.set(id,setTimeout(()=>{revealed.delete(id);render();},8000));}render();}
@@ -21,6 +23,7 @@ function move(action){
   if(trainingUI.isPaused()||moving)return;
   try{
     const before=state, visual=captureMotion(state.actor), next=act(state,action);
+    if(history.isPast)resultGate.reset();
     history.replace(snapshot());botScheduler.cancel();state=next;selected=null;moving=true;
     const token=++motionEpoch;
     for(const event of audioEvents(before,state,action))void audio.play(event);
@@ -69,7 +72,9 @@ function render(){
   if(stock.card)$('stock').append(card(stock.card));else{const empty=document.createElement('span');empty.className='empty-stock';empty.textContent='Leer';$('stock').append(empty);}
   if(stock.count>1){const back=document.createElement('span');back.className='back';back.innerHTML='<span class=stock-count>'+stock.count+'</span>';$('stock').append(back);}
   const label=document.createElement('small');label.textContent=stock.label+(stock.count===1?' · 1':'');$('stock').append(label);
-  $('stock').disabled=paused;
+  $('stock').disabled=!canInspectStock(training,paused);
+  $('stock').setAttribute('aria-label',training?'Welche Karten sind aus dem Spiel?':'Nachziehstapel · Trumpf '+state.trump);
+  if(!training&&$('discard-dialog').open)$('discard-dialog').close();
   if($('discard-dialog').open)renderDiscardOverview($('discard-overview'),state.discarded);
   $('discard-count').textContent=state.discarded.length;$('limit').textContent=`${state.table.length} / ${state.limit}`;
   $('table').replaceChildren();if(!state.table.length)$('table').innerHTML='<div class="empty-table">Die nächste Karte eröffnet die Runde.</div>';
@@ -80,13 +85,37 @@ function render(){
   $('hint').textContent=state.finished?'Eine neue Partie wartet auf dich.':state.taking?`${state.defender===0?'Du nimmst':state.players[state.defender].name+' nimmt'} auf. Passende Werte dürfen noch dazu.`:human?(state.phase==='defend'?'Klicke eine höhere Karte derselben Farbe oder einen Trumpf.':state.table.length?'Wirf einen passenden Wert nach oder beende deinen Angriff.':'Wähle eine Karte, um den Angriff zu eröffnen.'):state.players[0].out?'Du bist fertig. Die Bots spielen die Partie zu Ende.':'Beobachte die Karten und plane deinen nächsten Zug.';
   $('take').disabled=!human||!actions.some(a=>a.type==='take');$('pass').disabled=!human||!actions.some(a=>a.type==='pass');$('step').hidden=$('speed').value!=='manual'||history?.isPast;$('step').disabled=state.finished||state.actor===0||paused||moving;
   if(paused){$('status').textContent='Training · Spiel pausiert';$('hint').textContent='Prüfe deine Antwort oder überspringe den Check, um weiterzuspielen.';}
-  trainingUI.update(observation(state,0));if(history)renderHistory();schedule();
+  trainingUI.update(observation(state,0));if(history)renderHistory();schedule();showResult();
 }
-$('stock').onclick=()=>{renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();};
+$('stock').onclick=()=>{if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();};
 $('close-discard').onclick=()=>$('discard-dialog').close();
 $('discard-dialog').onclick=e=>{if(e.target===$('discard-dialog'))$('discard-dialog').close();};
 $('take').onclick=()=>move({type:'take'});$('pass').onclick=()=>move({type:'pass'});$('step').onclick=botStep;
-$('new').onclick=()=>{botScheduler.cancel();motionEpoch++;cancelMotion();moving=false;clearReveals();selected=null;state=createGame();clearTimeout(feedbackTimer);$('move-feedback').textContent='';void audio.play('shuffle');trainingUI.reset(observation(state,0));history=createHistory(snapshot());render();};
+function cancelRoundWork(){
+  botScheduler.cancel();motionEpoch++;moving=false;
+  cancelMotion();clearReveals();selected=null;
+  clearTimeout(feedbackTimer);$('move-feedback').textContent='';
+}
+function newRound(){
+  const fresh=startFreshRound({cancelPending:cancelRoundWork,
+    closeOverlays:()=>{for(const id of ['result-dialog','discard-dialog'])if($(id).open)$(id).close();},
+    training:trainingUI,difficulty:$('difficulty').value});
+  state=fresh.game;history=fresh.history;resultGate.reset();
+  void audio.play('shuffle');render();
+}
+function showResult(){
+  if(!resultGate.take(state,{moving,past:history?.isPast}))return;
+  const result=roundResult(state);
+  $('result-winners').textContent=result.draw?'Unentschieden – alle Hände sind leer.':'Gewinner: '+result.winners.join(' & ');
+  $('result-loser').textContent=result.draw?'Kein Durak.':'Durak: '+result.loser;
+  $('result-others').textContent=result.others.length?'Ebenfalls kartenfrei: '+result.others.join(' & '):'';
+  $('result-review').hidden=!$('training').checked;
+  if($('discard-dialog').open)$('discard-dialog').close();
+  $('result-dialog').showModal();
+}
+$('new').onclick=newRound;$('result-new').onclick=newRound;
+$('result-review').onclick=()=>{if(!$('training').checked)return;$('result-dialog').close();$('history-back').focus();};
+$('result-dialog').addEventListener('cancel',event=>event.preventDefault());
 $('training').onchange=()=>{clearReveals();trainingUI.setEnabled($('training').checked);};$('speed').onchange=scheduleAndRender;function scheduleAndRender(){render();}$('difficulty').onchange=schedule;
 trainingUI.update(observation(state,0));history=createHistory(snapshot());
 $('history-back').onclick=()=>navigateHistory(history.index-1);$('history-forward').onclick=()=>navigateHistory(history.index+1);
