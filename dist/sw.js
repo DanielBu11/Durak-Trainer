@@ -1,8 +1,8 @@
-const VERSION = 'development-v12';
+const VERSION = 'development-v13';
 const PREFIX = `durak-pwa:${self.registration.scope}:`;
 const CACHE = PREFIX + VERSION;
 /* ASSETS_START */
-const ASSETS=['./','./index.html','./style.css','./icon.svg','./icons/icon-192.png','./icons/icon-512.png','./manifest.webmanifest','./src/ui/app.js','./src/ui/cards.js','./src/ui/motion.js','./src/ui/history.js','./src/ui/roundLifecycle.js','./src/game/cards.js','./src/game/engine.js','./src/bots/strategy.js','./src/training/analysis.js'];
+const ASSETS=['./','./index.html','./style.css','./icon.svg','./icons/icon-192.png','./icons/icon-512.png','./manifest.webmanifest','./src/ui/app.js','./src/ui/cards.js','./src/ui/motion.js','./src/ui/eventFeedback.js','./src/ui/history.js','./src/ui/roundLifecycle.js','./src/game/cards.js','./src/game/engine.js','./src/bots/strategy.js','./src/training/analysis.js'];
 ASSETS.push(...['beginner','amateur','weights','view','knowledge','scoring'].map(name=>`./src/bots/${name}.js`));
 ASSETS.push('./src/ui/trainingUI.js',...['trainingLevels','trainingSelectors','trainingState','trainingEvaluation','trainingStats'].map(name=>`./src/training/${name}.js`));
 ASSETS.push('./src/ui/audioUI.js',...['config','manager','events'].map(name=>`./src/audio/${name}.js`));

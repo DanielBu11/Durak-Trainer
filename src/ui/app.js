@@ -1,6 +1,7 @@
+import {collectionFeedback, createEventFeedback} from './eventFeedback.js';
 import {startFreshRound, roundResult, createResultGate, canInspectStock} from './roundLifecycle.js';
 import {createHistory, createBotScheduler} from './history.js';
-import {captureMotion, animateMove, cancelMotion, motionFinished} from './motion.js';
+import {captureMotion, animateMove, cancelMotion, motionFinished, pulseStock} from './motion.js';
 import {card, suitName, stockDisplay, renderDiscardOverview} from './cards.js';
 import {createGame, act, legalActions, observation} from '../game/engine.js';
 import {chooseAction} from '../bots/strategy.js';
@@ -11,6 +12,7 @@ import {audioEvents} from '../audio/events.js';
 const botAvatars={1:'🦉',2:'🐟'};
 const $=id=>document.getElementById(id);
 const audio=setupAudio($('audio-settings'));
+const eventFeedback=createEventFeedback($('event-feedback'));
 let state=createGame(), selected=null, history, moving=false, motionEpoch=0;
 const botScheduler=createBotScheduler();
 const resultGate=createResultGate();
@@ -26,15 +28,19 @@ function move(action){
     if(history.isPast)resultGate.reset();
     history.replace(snapshot());botScheduler.cancel();state=next;selected=null;moving=true;
     const token=++motionEpoch;
-    for(const event of audioEvents(before,state,action))void audio.play(event);
+    const events=state.events.slice(before.events.length),collection=collectionFeedback(events);
+    const sounds=audioEvents(before,state,action);
+    for(const event of sounds)if(event!=='cardDraw'||!collection)void audio.play(event);
     render();history.commit(snapshot());renderHistory();
-    const events=state.events.slice(before.events.length);showMoveFeedback(before,events,action);
+    showMoveFeedback(before,events,action);eventFeedback.show(collection);
     try{animateMove(visual,before,state,action,events);}catch{/* Animation failure must not prevent further play. */}
-    motionFinished().then(()=>{if(token!==motionEpoch)return;moving=false;render();});
+    motionFinished().then(()=>{if(token!==motionEpoch)return;
+      if(collection&&sounds.includes('cardDraw')){void audio.play('cardDraw');$('move-feedback').textContent='Nachgezogen · Hände aufgefüllt';pulseStock();}
+      moving=false;render();});
   }catch(error){$('status').textContent=error.message;}
 }
 function navigateHistory(index){
-  botScheduler.cancel();motionEpoch++;cancelMotion();moving=false;clearReveals();selected=null;
+  botScheduler.cancel();motionEpoch++;cancelMotion();eventFeedback.cancel();moving=false;clearReveals();selected=null;
   clearTimeout(feedbackTimer);$('move-feedback').textContent='';
   history.replace(snapshot());const saved=history.go(index);state=saved.game;
   $('difficulty').value=saved.difficulty;trainingUI.restore(saved.training,observation(state,0));
@@ -54,7 +60,7 @@ let feedbackTimer;
 function showMoveFeedback(before,events,action){
   const pickup=events.find(e=>e.type==='pickup');
   const says=(id,verb)=>id===0?'Du '+({ 'nimmt auf':'nimmst auf','greift an':'greifst an','verteidigt':'verteidigst'}[verb]):before.players[id].name+' '+verb;
-  $('move-feedback').textContent=pickup?says(pickup.player,'nimmt auf'):events.some(e=>e.type==='discard')?'Karten gehen raus':action.type==='take'?says(before.actor,'nimmt auf'):action.type==='attack'?says(before.actor,'greift an'):action.type==='defend'?says(before.actor,'verteidigt'):'';
+  $('move-feedback').textContent=pickup||events.some(e=>e.type==='discard')?'':action.type==='take'?says(before.actor,'nimmt auf'):action.type==='attack'?says(before.actor,'greift an'):action.type==='defend'?says(before.actor,'verteidigt'):'';
   clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{$('move-feedback').textContent='';},1800);
 }
 function botStep(){if(!moving && !trainingUI.isPaused() && !state.finished && state.actor!==0)move(chooseAction(observation(state),$('difficulty').value));}
@@ -95,7 +101,7 @@ $('discard-dialog').onclick=e=>{if(e.target===$('discard-dialog'))$('discard-dia
 $('take').onclick=()=>move({type:'take'});$('pass').onclick=()=>move({type:'pass'});$('step').onclick=botStep;
 function cancelRoundWork(){
   botScheduler.cancel();motionEpoch++;moving=false;
-  cancelMotion();clearReveals();selected=null;
+  cancelMotion();eventFeedback.cancel();clearReveals();selected=null;
   clearTimeout(feedbackTimer);$('move-feedback').textContent='';
 }
 function newRound(){
