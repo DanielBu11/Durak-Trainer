@@ -2,7 +2,7 @@ import {deck, shuffle, beats} from './cards.js';
 export function createGame(random = Math.random) {
   const stock = shuffle(deck(), random);
   const trumpCard = stock[0]; // Draw from the end: the exposed bottom card is drawn last.
-  const players = ['Du', 'Bot 1', 'Bot 2'].map((name, id) => ({id, name, hand: stock.splice(-6), out: false}));
+  const players = ['Du', 'Uhu', 'Aal'].map((name, id) => ({id, name, hand: stock.splice(-6), out: false}));
   const trumps = players.flatMap(p => p.hand.filter(c => c.suit === trumpCard.suit).map(c => ({player:p.id, value:c.value})));
   const attacker = trumps.sort((a,b) => a.value-b.value)[0]?.player ?? 0;
   const state = {players, stock, trump:trumpCard.suit, trumpCard, discarded:[], table:[], events:[], attacker, defender:null, actor:attacker, phase:'attack', taking:false, passed:[], round:0, loser:null, finished:false};

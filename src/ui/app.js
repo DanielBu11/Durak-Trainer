@@ -1,17 +1,18 @@
+import {card, suitName, stockDisplay, renderDiscardOverview} from './cards.js';
 import {createGame, act, legalActions, observation} from '../game/engine.js';
 import {chooseAction} from '../bots/strategy.js';
 import {createTrainingUI} from './trainingUI.js';
 import {setupAudio} from './audioUI.js';
 import {audioEvents} from '../audio/events.js';
+// Fallbacks can later be replaced by local image elements.
+const botAvatars={1:'🦉',2:'🐟'};
 const $=id=>document.getElementById(id);
 const audio=setupAudio($('audio-settings'));
 let state=createGame(), timer, selected=null;
 const revealed=new Set(), revealTimers=new Map();
 function clearReveals(){revealed.clear();for(const t of revealTimers.values())clearTimeout(t);revealTimers.clear();}
 function revealHand(id){clearTimeout(revealTimers.get(id));if(revealed.has(id))revealed.delete(id);else{revealed.add(id);revealTimers.set(id,setTimeout(()=>{revealed.delete(id);render();},8000));}render();}
-const trainingUI=createTrainingUI({root:$('training-panel'),onReveal:id=>{revealHand(id);$(`bot${id}`).scrollIntoView({block:'center',behavior:'auto'});},onChange:()=>{if(trainingUI.isPaused())clearReveals();render();}});
-const suitName={'♠':'Pik','♥':'Herz','♦':'Karo','♣':'Kreuz'};
-function card(c, button=false) {const el=document.createElement(button?'button':'div');el.className=`card ${['♥','♦'].includes(c.suit)?'red':''}`;el.innerHTML=`<span>${c.rank}</span><span class="suit">${c.suit}</span><span class="corner">${c.rank}</span>`;el.setAttribute('aria-label',`${suitName[c.suit]} ${c.rank}`);return el;}
+const trainingUI=createTrainingUI({root:$('training-panel'),onChange:()=>{if(trainingUI.isPaused())clearReveals();render();}});
 function move(action){if(trainingUI.isPaused())return;try{const before=state;state=act(state,action);for(const event of audioEvents(before,state,action))void audio.play(event);selected=null;render();}catch(error){$('status').textContent=error.message;}}
 function botStep(){if(!trainingUI.isPaused() && !state.finished && state.actor!==0)move(chooseAction(observation(state),$('difficulty').value));}
 function schedule(){clearTimeout(timer);if(!trainingUI.isPaused() && !state.finished && state.actor!==0 && $('speed').value!=='manual')timer=setTimeout(botStep,Number($('speed').value));}
@@ -20,12 +21,17 @@ function render(){
   $('round').textContent=`Runde ${state.round}`;
   for(const id of [1,2]) {
     const p=state.players[id], root=$(`bot${id}`);root.className=`opponent ${state.actor===id&&!state.finished?'active-player':''}`;
-    root.innerHTML=`<div class="opponent-header"><span class="avatar">0${id}</span><div><h2>${p.name}</h2><small>${p.out?'Fertig':`${p.hand.length} Karten · ${state.defender===id?'Verteidigung':state.attacker===id?'Angriff':'Nachwerfen'}`}</small></div></div>`;
+    root.innerHTML=`<div class="opponent-header"><span class="avatar" aria-hidden="true">${botAvatars[id]}</span><div><h2>${p.name}</h2><small>${p.out?'Fertig':`${p.hand.length} Karten · ${state.defender===id?'Verteidigung':state.attacker===id?'Angriff':'Nachwerfen'}`}</small></div></div>`;
     if(training){const eye=document.createElement('button');eye.className='eye';eye.textContent=revealed.has(id)?'◉':'◎';eye.disabled=paused;eye.setAttribute('aria-label',`${p.name}: Hand ${revealed.has(id)?'verbergen':'8 Sekunden aufdecken'}`);eye.setAttribute('aria-pressed',String(revealed.has(id)));eye.onclick=()=>revealHand(id);root.firstChild.append(eye);}
     const cards=document.createElement('div');cards.className=training&&revealed.has(id)?'revealed':'backs';
     if(training&&revealed.has(id))p.hand.forEach(c=>cards.append(card(c)));else for(let i=0;i<Math.min(8,p.hand.length);i++){const back=document.createElement('span');back.className='back';back.setAttribute('aria-hidden','true');cards.append(back);}root.append(cards);
   }
-  $('stock').replaceChildren(card(state.trumpCard));if(state.stock.length){const back=document.createElement('span');back.className='back';back.textContent=state.stock.length;back.setAttribute('aria-label',`${state.stock.length} Karten im Stapel`);$('stock').append(back);}const label=document.createElement('small');label.textContent=`${state.stock.length?'Trumpf':'Stapel leer'} · ${state.trump}`;$('stock').append(label);
+  const stock=stockDisplay(state);$('stock').replaceChildren();
+  if(stock.card)$('stock').append(card(stock.card));
+  if(stock.count){const back=document.createElement('span');back.className='back';back.textContent=stock.count;$('stock').append(back);}
+  const label=document.createElement('small');label.textContent=stock.label;$('stock').append(label);
+  $('stock').disabled=paused;
+  if($('discard-dialog').open)renderDiscardOverview($('discard-overview'),state.discarded);
   $('discard-count').textContent=state.discarded.length;$('limit').textContent=`${state.table.length} / ${state.limit}`;
   $('table').replaceChildren();if(!state.table.length)$('table').innerHTML='<div class="empty-table">Die nächste Karte eröffnet die Runde.</div>';
   state.table.forEach((pair,target)=>{const el=document.createElement('div');el.className='pair';const a=card(pair.attack,human&&state.phase==='defend'&&!pair.defense);if(a.tagName==='BUTTON'){a.disabled=!actions.some(x=>x.type==='defend'&&x.target===target&&(!selected||x.card===selected));a.setAttribute('aria-label',`${suitName[pair.attack.suit]} ${pair.attack.rank} decken`);a.onclick=()=>{if(selected)move({type:'defend',card:selected,target});else{$('hint').textContent='Wähle zuerst eine passende Karte aus deiner Hand.';}};}el.append(a);if(pair.defense){const d=card(pair.defense);d.classList.add('defense');el.append(d);}else if(selected)el.classList.add('target');$('table').append(el);});
@@ -37,6 +43,9 @@ function render(){
   if(paused){$('status').textContent='Training · Spiel pausiert';$('hint').textContent='Prüfe deine Antwort oder überspringe den Check, um weiterzuspielen.';}
   trainingUI.update(observation(state,0));schedule();
 }
+$('stock').onclick=()=>{renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();};
+$('close-discard').onclick=()=>$('discard-dialog').close();
+$('discard-dialog').onclick=e=>{if(e.target===$('discard-dialog'))$('discard-dialog').close();};
 $('take').onclick=()=>move({type:'take'});$('pass').onclick=()=>move({type:'pass'});$('step').onclick=botStep;
 $('new').onclick=()=>{clearTimeout(timer);clearReveals();selected=null;state=createGame();void audio.play('shuffle');trainingUI.reset(observation(state,0));render();};
 $('training').onchange=()=>{clearReveals();$('training-label').textContent=$('training').checked?'Training AN':'Training AUS';trainingUI.setEnabled($('training').checked);};$('speed').onchange=scheduleAndRender;function scheduleAndRender(){render();}$('difficulty').onchange=schedule;

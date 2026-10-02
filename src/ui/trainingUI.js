@@ -7,12 +7,11 @@ import {loadStats, emptyStats, recordCheck, saveStats, accuracy} from '../traini
 
 const suitNames = {'♣':'Kreuz','♦':'Karo','♥':'Herz','♠':'Pik'};
 const cardLabel = c => `${suitNames[c.suit]} ${c.rank}`;
-const opponent = id => id === 1 ? 'Bot 1 · links' : 'Bot 2 · rechts';
+const opponent = id => id === 1 ? 'Uhu · links' : 'Aal · rechts';
 const chips = cards => cards.length ? cards.map(c => `<span class="chip ${['♥','♦'].includes(c.suit)?'red':''}">${c.rank}${c.suit}</span>`).join('') : 'Keine';
 
-/** UI-only controller. Receives public observation; hidden hand reveal is an
- * isolated rendering callback owned by app.js, never a training/bot input. */
-export function createTrainingUI({root, onChange, onReveal}) {
+/** UI-only controller. Receives public observation, never hidden hands. */
+export function createTrainingUI({root, onChange}) {
   let state = createTrainingState(), view, quiz = null, answer, result = null, picking = null;
   let analysisOpen = false, statsOpen = false, storage, storageAvailable = true;
   try {storage = window.localStorage;} catch {storageAvailable = false;}
@@ -71,7 +70,7 @@ export function createTrainingUI({root, onChange, onReveal}) {
   function analysisMarkup() {
     if (quiz || picking !== null) return '';
     const a=selectTrainingFacts(view);
-    return `<details class="training-details" data-panel="analysis" ${analysisOpen?'open':''}><summary>Analyse / Kontrolle</summary><p class="note">Bewusst nachsehen: Diese Anzeige beeinflusst die Bots nicht. Bot-Hände werden am Spieltisch für 8 Sekunden aufgedeckt.</p><div class="training-actions">${[1,2].map(id=>`<button data-reveal="${id}">Gegnerhand aufdecken · ${id===1?'links':'rechts'}</button>`).join('')}</div><div class="analysis-grid"><article><h3>Sicher aus dem Spiel · ${a.discarded.length}</h3>${chips(a.discarded)}</article><article><h3>Trümpfe noch im Spiel · ${a.trumpsRemaining.length}</h3>${chips(a.trumpsRemaining)}<p>In Händen, auf dem Tisch oder im Stapel.</p><p>${a.memory.numberTrumpsOut} Zahlentrümpfe raus · ${Object.entries(a.memory.facesOut).map(([rank,out])=>`${rank}: ${out?'raus':'nicht sicher raus'}`).join(' · ')}</p></article><article><h3>Sichtbar aufgenommene Karten</h3>${[1,2].map(id=>`<h4>${opponent(id)}</h4><p>Noch sicher auf der Hand:</p>${chips(a.knownHeld[id])}${hasFeature(state.level,'memory')&&state.remembered[id]?`<p>Deine gemerkte Karte: ${chips([state.remembered[id].card])}</p>`:''}`).join('')}</article></div><details><summary>Vollständiger Aufnahmeverlauf</summary>${a.pickups.map(e=>`<p>Runde ${e.round} · ${e.player===0?'Du':opponent(e.player)}: ${chips(e.cards)}</p>`).join('')||'<p>Noch keine Aufnahme.</p>'}</details></details>`;
+    return `<details class="training-details" data-panel="analysis" ${analysisOpen?'open':''}><summary>Analyse / Kontrolle</summary><p class="note">Bewusst nachsehen: Diese Anzeige beeinflusst die Bots nicht. Mit dem Augen-Symbol neben Uhu oder Aal kannst du die Hand für 8 Sekunden aufdecken.</p><div class="analysis-grid"><article><h3>Sicher aus dem Spiel · ${a.discarded.length}</h3>${chips(a.discarded)}</article><article><h3>Trümpfe noch im Spiel · ${a.trumpsRemaining.length}</h3>${chips(a.trumpsRemaining)}<p>In Händen, auf dem Tisch oder im Stapel.</p><p>${a.memory.numberTrumpsOut} Zahlentrümpfe raus · ${Object.entries(a.memory.facesOut).map(([rank,out])=>`${rank}: ${out?'raus':'nicht sicher raus'}`).join(' · ')}</p></article><article><h3>Sichtbar aufgenommene Karten</h3>${[1,2].map(id=>`<h4>${opponent(id)}</h4><p>Noch sicher auf der Hand:</p>${chips(a.knownHeld[id])}${hasFeature(state.level,'memory')&&state.remembered[id]?`<p>Deine gemerkte Karte: ${chips([state.remembered[id].card])}</p>`:''}`).join('')}</article></div><details><summary>Vollständiger Aufnahmeverlauf</summary>${a.pickups.map(e=>`<p>Runde ${e.round} · ${e.player===0?'Du':opponent(e.player)}: ${chips(e.cards)}</p>`).join('')||'<p>Noch keine Aufnahme.</p>'}</details></details>`;
   }
   function statsMarkup() {
     return `<details class="training-details" data-panel="stats" ${statsOpen?'open':''}><summary>Trainingsstatistik · ${stats.correct} / ${stats.checks} richtig</summary><p>Trefferquote ${accuracy(stats)} · Aktuelle Serie ${stats.streak} · Beste Serie ${stats.best}</p><div class="stats-table"><table><thead><tr><th>Level</th><th>Checks</th><th>Richtig</th><th>Quote</th><th>Serie</th><th>Beste</th></tr></thead><tbody>${LEVELS.filter(l=>l.id<=state.level).map(l=>{const s=stats.levels[l.id];return `<tr><th>${l.id}</th><td>${s.checks}</td><td>${s.correct}</td><td>${accuracy(s)}</td><td>${s.streak}</td><td>${s.best}</td></tr>`;}).join('')}</tbody></table></div><p class="note">Checks zählen zum beim Öffnen gewählten Level. Überspringen und Vermutungen zählen nicht. ${storageAvailable?'Nur lokal in diesem Browser gespeichert.':'Speichern ist nicht verfügbar; Statistik gilt nur für diese Sitzung.'}</p></details>`;
@@ -96,7 +95,7 @@ export function createTrainingUI({root, onChange, onReveal}) {
       if(d.recall)begin('memory',Number(d.recall));
       if(d.forget){state=forgetCard(state,Number(d.forget));redraw();}
       if(d.weakPlayer){state=toggleWeakness(state,Number(d.weakPlayer),d.weakSuit);render();}
-      if(d.reveal)onReveal(Number(d.reveal));
+
     });
   }
   return {
