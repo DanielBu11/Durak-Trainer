@@ -28,7 +28,7 @@ export function amateurScores(view) {
         e.add('SMALL_TRUMP_COST', -W.SMALL_TRUMP_COST, 'Trumpf als Verteidigungsreserve erhalten.');
         e.add('HIGH_TRUMP_COST', -W.HIGH_TRUMP_COST * rank ** 2, 'Hohe Trümpfe sind besonders wertvoll.');
         if (view.hand.filter(c => c.suit === view.trump).length <= 2) e.add('LAST_TRUMPS_COST', -W.LAST_TRUMPS_COST, 'Einer der letzten beiden eigenen Trümpfe.');
-        e.add('TRUMPS_OUT_RESERVE', -W.TRUMPS_OUT_RESERVE * knowledge.trumpsOut / 9, `${knowledge.trumpsOut} Trümpfe sind sicher raus; eigene Reserve schützen.`);
+        e.add('TRUMPS_OUT_RESERVE', -W.TRUMPS_OUT_RESERVE * knowledge.trumpsOut / 9, `${knowledge.trumpsOut} Trümpfe sind raus; eigene Reserve schützen.`);
       }
       if (action.type === 'attack') {
         e.add('ATTACK', W.ATTACK, 'Initiative nutzen.');
@@ -42,7 +42,7 @@ export function amateurScores(view) {
         e.add('SAME_RANK', W.SAME_RANK * followUps, `${followUps} weitere eigene Karten dieses Rangs könnten folgen.`);
         const evidence = attackEvidence(view, knowledge, c);
         e.add('FORCE_PICKUP', W.FORCE_PICKUP * evidence.pickupEstimate, `Geschätzte Chance ohne passende Abwehr: ${Math.round(evidence.pickupEstimate * 100)} % (öffentliches Wissen, keine Gewissheit).`);
-        if (evidence.knownCounter) e.add('KNOWN_COUNTER_COST', -W.KNOWN_COUNTER_COST, 'Sichtbar aufgenommene Gegenkarte noch sicher auf der Hand.');
+        if (evidence.knownCounter) e.add('KNOWN_COUNTER_COST', -W.KNOWN_COUNTER_COST, 'Sichtbar aufgenommene Gegenkarte noch bekannt auf der Hand.');
         e.add('OBSERVED_WEAKNESS', W.OBSERVED_WEAKNESS * evidence.weakness, 'Frühere Aufnahme dieser Farbe: schwaches Indiz, kein Beweis.');
         if (view.table.length) e.add('THROW_IN_COST', -W.THROW_IN_COST, 'Nachwerfen nur mit ausreichendem Nutzen.');
         else e.add('REPEATED_OPENING_COST', -W.REPEATED_OPENING_COST * (knowledge.openings.get(c.id) ?? 0), 'Eröffnungen variieren, um Aufnahme-Schleifen zu vermeiden.');

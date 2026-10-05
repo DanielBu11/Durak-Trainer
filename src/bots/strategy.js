@@ -1,3 +1,5 @@
+import {meisterScores} from './meister.js';
+import {profiScores} from './profi.js';
 import {beginnerScores} from './beginner.js';
 import {amateurScores} from './amateur.js';
 import {publicView} from './view.js';
@@ -5,9 +7,9 @@ import {publicView} from './view.js';
 /** Highest score wins. Ties use a stable key, or an explicitly injected RNG.
  * Diagnostics and normal play use exactly the same evaluation path. */
 export function explainDecision(observation, level = 'beginner', {rng} = {}) {
-  if (!['beginner', 'amateur'].includes(level)) throw new Error(`Unbekannte Bot-Stufe: ${level}`);
+  if (!['beginner', 'amateur', 'profi', 'meister'].includes(level)) throw new Error(`Unbekannte Bot-Stufe: ${level}`);
   const view = publicView(observation, level);
-  const alternatives = level === 'amateur' ? amateurScores(view) : beginnerScores(view);
+  const alternatives = level === 'meister' ? meisterScores(view) : level === 'profi' ? profiScores(view) : level === 'amateur' ? amateurScores(view) : beginnerScores(view);
   const key = a => `${a.type}:${a.card ?? ''}:${a.target ?? ''}`;
   alternatives.sort((a, b) => b.score - a.score || (key(a.action) < key(b.action) ? -1 : key(a.action) > key(b.action) ? 1 : 0));
   if (!alternatives.length) return {level, action: null, card: null, score: null, reasons: [], alternatives: []};

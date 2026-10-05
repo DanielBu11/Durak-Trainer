@@ -1,8 +1,11 @@
+import {recommendMove} from '../coach/coach.js';
+import {renderCoachUI} from './coachUI.js';
+import {knownHandView} from '../knowledge/trainingKnowledge.js';
 import {collectionFeedback, createEventFeedback} from './eventFeedback.js';
 import {startFreshRound, roundResult, createResultGate, canInspectStock} from './roundLifecycle.js';
 import {createHistory, createBotScheduler} from './history.js';
 import {captureMotion, animateMove, cancelMotion, motionFinished, pulseStock} from './motion.js';
-import {card, suitName, stockDisplay, renderDiscardOverview} from './cards.js';
+import {card, suitName, stockDisplay, renderTrainingOverview} from './cards.js';
 import {createGame, act, legalActions, observation} from '../game/engine.js';
 import {chooseAction} from '../bots/strategy.js';
 import {createTrainingUI} from './trainingUI.js';
@@ -16,6 +19,7 @@ const eventFeedback=createEventFeedback($('event-feedback'));
 let state=createGame(), selected=null, history, moving=false, motionEpoch=0;
 const botScheduler=createBotScheduler();
 const resultGate=createResultGate();
+let coachAdvice=null,coachStamp=null;
 const revealed=new Set(), revealTimers=new Map();
 function clearReveals(){revealed.clear();for(const t of revealTimers.values())clearTimeout(t);revealTimers.clear();}
 function revealHand(id){clearTimeout(revealTimers.get(id));if(revealed.has(id))revealed.delete(id);else{revealed.add(id);revealTimers.set(id,setTimeout(()=>{revealed.delete(id);render();},8000));}render();}
@@ -67,13 +71,14 @@ function botStep(){if(!moving && !trainingUI.isPaused() && !state.finished && st
 function schedule(){botScheduler.cancel();if(!moving && !history?.isPast && !trainingUI.isPaused() && !state.finished && state.actor!==0 && $('speed').value!=='manual')botScheduler.schedule(botStep,Number($('speed').value));}
 function render(){
   const actions=legalActions(state), paused=trainingUI.isPaused(), human=state.actor===0&&!state.finished&&!paused&&!moving, training=$('training').checked;
+  const publicState=observation(state,0),level=trainingUI.getLevel();
   $('round').textContent=`Runde ${state.round}`;
   for(const id of [1,2]) {
-    const p=state.players[id], root=$(`bot${id}`);root.className=`opponent ${state.actor===id&&!state.finished&&!paused?'active-player':''}`;
-    root.innerHTML=`<div class="opponent-header"><span class="avatar" aria-hidden="true">${botAvatars[id]}</span><div><h2>${p.name}<span class="turn-tag">${state.actor===id&&!state.finished&&!paused?'am Zug':''}</span></h2><small>${p.out?'Fertig':`${p.hand.length} Karten · ${state.defender===id?'Verteidigung':state.attacker===id?'Angriff':'Nachwerfen'}`}</small></div></div>`;
-    if(training){const eye=document.createElement('button');eye.className='eye';eye.textContent='👁';eye.disabled=paused;eye.setAttribute('aria-label',`${p.name}: Hand ${revealed.has(id)?'verbergen':'8 Sekunden aufdecken'}`);eye.setAttribute('aria-pressed',String(revealed.has(id)));eye.onclick=()=>revealHand(id);root.firstChild.insertBefore(eye,root.firstChild.children[1]);}
-    const cards=document.createElement('div');cards.className=training&&revealed.has(id)?'revealed':'backs';
-    if(training&&revealed.has(id))p.hand.forEach(c=>cards.append(card(c)));else for(let i=0;i<Math.min(8,p.hand.length);i++){const back=document.createElement('span');back.className='back';back.setAttribute('aria-hidden','true');cards.append(back);}root.append(cards);
+    const p={...publicState.players[id],name:state.players[id].name}, root=$(`bot${id}`);root.className=`opponent ${state.actor===id&&!state.finished&&!paused?'active-player':''}`;
+    root.innerHTML=`<div class="opponent-header"><span class="avatar" aria-hidden="true">${botAvatars[id]}</span><div><h2>${p.name}<span class="turn-tag">${state.actor===id&&!state.finished&&!paused?'am Zug':''}</span></h2><small>${p.out?'Fertig':`${p.count} Karten · ${state.defender===id?'Verteidigung':state.attacker===id?'Angriff':'Nachwerfen'}`}</small></div></div>`;
+    if(training&&level>=3){const eye=document.createElement('button');eye.className='eye';eye.textContent='👁';eye.disabled=paused;eye.setAttribute('aria-label',`${p.name}: bekannte Karten ${revealed.has(id)?'verbergen':'8 Sekunden anzeigen'}`);eye.setAttribute('aria-pressed',String(revealed.has(id)));eye.onclick=()=>revealHand(id);root.firstChild.insertBefore(eye,root.firstChild.children[1]);}
+    const cards=document.createElement('div');cards.className=training&&level>=3&&revealed.has(id)?'revealed':'backs';
+    if(training&&level>=3&&revealed.has(id)){const known=knownHandView(publicState,id,{enabled:training,level});const label=document.createElement('small');label.className='known-hand-label';label.textContent='Bekannt';cards.append(label);known.cards.forEach(c=>cards.append(card(c)));const unknown=document.createElement('small');unknown.className='known-hand-label';unknown.textContent='Unbekannt: '+known.unknown;cards.append(unknown);}else for(let i=0;i<Math.min(8,p.count);i++){const back=document.createElement('span');back.className='back';back.setAttribute('aria-hidden','true');cards.append(back);}root.append(cards);
   }
   $('hand').closest('.hand-section').classList.toggle('your-turn',human);
   const stock=stockDisplay(state);$('stock').classList.toggle('is-empty',!stock.count);$('stock').replaceChildren();
@@ -83,7 +88,7 @@ function render(){
   $('stock').disabled=!canInspectStock(training,paused);
   $('stock').setAttribute('aria-label',training?'Welche Karten sind aus dem Spiel?':'Nachziehstapel · Trumpf '+state.trump);
   if(!training&&$('discard-dialog').open)$('discard-dialog').close();
-  if($('discard-dialog').open)renderDiscardOverview($('discard-overview'),state.discarded);
+  if($('discard-dialog').open)renderTrainingOverview($('discard-overview'),observation(state,0),trainingUI.getLevel());
   $('limit').textContent=`${state.table.length} / ${state.limit}`;
   $('table').replaceChildren();if(!state.table.length)$('table').innerHTML='<div class="empty-table">Die nächste Karte eröffnet die Runde.</div>';
   state.table.forEach((pair,target)=>{const el=document.createElement('div');el.className='pair'+(pair.defense?' covered':'');const a=card(pair.attack,human&&state.phase==='defend'&&!pair.defense);if(a.tagName==='BUTTON'){a.disabled=!actions.some(x=>x.type==='defend'&&x.target===target&&(!selected||x.card===selected));a.setAttribute('aria-label',`${suitName[pair.attack.suit]} ${pair.attack.rank} decken`);a.onclick=()=>{if(selected)move({type:'defend',card:selected,target});else{$('hint').textContent='Wähle zuerst eine passende Karte aus deiner Hand.';}};}el.append(a);if(pair.defense){const d=card(pair.defense);d.classList.add('defense');el.append(d);}else if(selected)el.classList.add('target');$('table').append(el);});
@@ -93,13 +98,20 @@ function render(){
   $('hint').textContent=state.finished?'Eine neue Partie wartet auf dich.':state.taking?`${state.defender===0?'Du nimmst':state.players[state.defender].name+' nimmt'} auf. Passende Werte dürfen noch dazu.`:human?(state.phase==='defend'?'Klicke eine höhere Karte derselben Farbe oder einen Trumpf.':state.table.length?'Wirf einen passenden Wert nach oder beende deinen Angriff.':'Wähle eine Karte, um den Angriff zu eröffnen.'):state.players[0].out?'Du bist fertig. Die Bots spielen die Partie zu Ende.':'Beobachte die Karten und plane deinen nächsten Zug.';
   $('take').disabled=!human||!actions.some(a=>a.type==='take');$('pass').disabled=!human||!actions.some(a=>a.type==='pass');$('step').hidden=$('speed').value!=='manual'||history?.isPast;$('step').disabled=state.finished||state.actor===0||paused||moving;
   if(paused){$('status').textContent='Training · Spiel pausiert';$('hint').textContent='Prüfe deine Antwort oder überspringe den Check, um weiterzuspielen.';}
-  trainingUI.update(observation(state,0));if(history)renderHistory();schedule();showResult();
+  trainingUI.update(observation(state,0));
+  const stamp=JSON.stringify([state.events.length,state.actor,state.phase,history?.index,history?.length,level,training,level>=4?trainingUI.getWeaknesses():null]);
+  if(coachStamp!==stamp){coachAdvice=null;coachStamp=stamp;}
+  renderCoachUI($('coach-panel'),{enabled:training,level,ready:human&&!paused,advice:coachAdvice,onRequest:()=>{
+    coachAdvice=recommendMove(observation(state,0),{enabled:training,level,manualWeaknesses:level>=4?trainingUI.getWeaknesses():undefined});render();
+  }});
+  if(history)renderHistory();schedule();showResult();
 }
-$('stock').onclick=()=>{if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();};
+$('stock').onclick=()=>{if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderTrainingOverview($('discard-overview'),observation(state,0),trainingUI.getLevel());$('discard-dialog').showModal();};
 $('close-discard').onclick=()=>$('discard-dialog').close();
 $('discard-dialog').onclick=e=>{if(e.target===$('discard-dialog'))$('discard-dialog').close();};
 $('take').onclick=()=>move({type:'take'});$('pass').onclick=()=>move({type:'pass'});$('step').onclick=botStep;
 function cancelRoundWork(){
+  coachAdvice=null;coachStamp=null;
   botScheduler.cancel();motionEpoch++;moving=false;
   cancelMotion();eventFeedback.cancel();clearReveals();selected=null;
   clearTimeout(feedbackTimer);$('move-feedback').textContent='';

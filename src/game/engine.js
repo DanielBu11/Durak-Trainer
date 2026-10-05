@@ -68,5 +68,5 @@ export function act(state, action) {
 }
 // This is the ONLY input to bots: no stock order or opponents' hidden hands.
 export function observation(s, player=s.actor) {
-  return {player, hand:structuredClone(s.players[player].hand), players:s.players.map(p=>({id:p.id,count:p.hand.length,out:p.out})), trump:s.trump, trumpCard:{...s.trumpCard}, stockCount:s.stock.length, table:structuredClone(s.table), discarded:structuredClone(s.discarded), events:structuredClone(s.events), attacker:s.attacker, defender:s.defender, phase:s.phase, taking:s.taking, actions:player===s.actor?legalActions(s):[]};
+  return {limit:s.limit, player, hand:structuredClone(s.players[player].hand), players:s.players.map(p=>({id:p.id,count:p.hand.length,out:p.out})), trump:s.trump, trumpCard:{...s.trumpCard}, stockCount:s.stock.length, table:structuredClone(s.table), discarded:structuredClone(s.discarded), events:structuredClone(s.events), attacker:s.attacker, defender:s.defender, phase:s.phase, taking:s.taking, actions:player===s.actor?legalActions(s):[]};
 }

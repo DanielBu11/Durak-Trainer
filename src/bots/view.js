@@ -3,12 +3,12 @@
 const card = c => ({id: c.id, suit: c.suit, rank: c.rank, value: c.value});
 export function publicView(source, level) {
   return {
-    player: source.player, hand: source.hand.map(card), trump: source.trump,
+    limit:source.limit, player: source.player, hand: source.hand.map(card), trump: source.trump,
     defender: source.defender, taking: Boolean(source.taking),
     table: source.table.map(p => ({attack: card(p.attack), defense: p.defense ? card(p.defense) : null})),
     players: (source.players ?? []).map(p => ({id: p.id, count: p.count, out: p.out})),
-    discarded: level === 'amateur' ? (source.discarded ?? []).map(card) : [],
-    events: level === 'amateur' ? (source.events ?? []).flatMap(e => {
+    discarded: level !== 'beginner' ? (source.discarded ?? []).map(card) : [],
+    events: level !== 'beginner' ? (source.events ?? []).flatMap(e => {
       if (e.type === 'play') return [{type: e.type, player: e.player, round: e.round, card: card(e.card)}];
       if (e.type === 'pickup') return [{type: e.type, player: e.player, round: e.round, cards: e.cards.map(card)}];
       return [];

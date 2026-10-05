@@ -65,7 +65,7 @@ Tests: `npm.cmd test` oder `node --test`. Kein `npm install` notwendig. Der Serv
 
 ## Bot-Architektur und Debugging
 
-Oben im Spiel unter **Gegner** zwischen **Anfänger** und **Amateur** wählen. Die Änderung gilt sofort für den nächsten Zug beider Bots. Die Oberfläche und die Spielregeln wurden für diese Bot-Iteration nicht verändert.
+Oben im Spiel unter **Gegner** zwischen **Anfänger**, **Amateur**, **Profi** und **Meister** wählen. Die Änderung gilt sofort für den nächsten Zug beider Bots. Architektur, Level-Grenzen, Suchlimits und Kalibrierung: **[BOTS-COACH.md](BOTS-COACH.md)**. Die Spielregeln bleiben unverändert.
 
 Die Engine bestimmt ausschließlich die legalen Aktionen. `chooseAction(observation, level)` wählt eine davon. Ein zusätzlicher Eingabefilter liest nur eigene Karten, Tisch, Trumpffarbe, Spieleranzahlen und öffentliche Ereignisse; gegnerische Hände, Stapelreihenfolge und Trainings-Aufdeckungen werden nicht gelesen. Die Zahl verbliebener Stapelkarten lässt sich für das Endspiel aus 36 minus öffentlichen Kartenanzahlen ableiten. Anfänger liest weder Historie noch Ablagestapel.
 
@@ -79,11 +79,11 @@ Wichtigste Amateur-Gewichte (`src/bots/weights.js`):
 | Niedriger Nicht-Trumpf / hohen Nicht-Trumpf loswerden | bis +8 / bis +4 |
 | Weiterer gleicher Rang, soweit Nachwerfen plausibel ist | +10 je Karte |
 | Fehlende Abwehr geschätzt aus öffentlichen Informationen | bis +22 |
-| Sicher bekannte Gegenkarte | −12 |
+| Bekannte Gegenkarte | −12 |
 | Trumpf einsetzen | −12 |
 | Hoher Trumpf | zusätzlich bis −24, quadratisch nach Rang |
 | Letzter oder vorletzter eigener Trumpf | zusätzlich −14 |
-| Sicher abgelegte Trümpfe | bis −6 zusätzlicher Reserveschutz |
+| Abgelegte Trümpfe | bis −6 zusätzlicher Reserveschutz |
 | Schwaches Indiz für Farbschwäche | +3, maximal +6 |
 | Aufnehmen | −6 und −3 je sichtbarer Tischkarte |
 | Aufnehmen bei leerem Stapel | zusätzlich −55 |
@@ -126,13 +126,13 @@ Die Engine führt öffentliche `play`, `pickup`, `discard` und `out`-Ereignisse.
 5. **Level 3:** Nach einer sichtbaren Gegneraufnahme über **Karte merken** genau eine bekannte Karte dieses Gegners auswählen. Empfehlung: Trumpf vor A/K/Q/J, danach übrige Karten. Die Wahl ist frei und ersetzt eine bisherige Merkkarte. **Karte abfragen** prüft Farbe und Rang, ohne die Lösung vorab zu zeigen. Sobald die Karte öffentlich ausgespielt wird, verschwindet sie automatisch aus dem Trainingsspeicher, auch bei vorübergehend ausgeschaltetem Training.
 6. **Level 4:** Pro Gegner Farben als **vermutlich schwach oder leer** markieren. Erneutes Antippen entfernt eine Markierung. Gelbe Vermutungen sind keine sicheren Karteninformationen; sie werden nicht automatisch als bewiesen behandelt oder bewertet. Frühere Level bleiben verfügbar.
 
-Unter **Analyse / Kontrolle** sind Ablage, verbleibende Trümpfe, öffentliche Aufnahmen, noch sicher gehaltene Karten und eigene Merkkarten nachsehbar. **Gegnerhand aufdecken** zeigt die aktuelle Hand am Tisch für acht Sekunden. Auch die Augen-Buttons bleiben verfügbar. Während einer offenen Quizfrage werden Aufdeckfunktionen gesperrt; vorherige Aufdeckungen werden geschlossen.
+**Analyse / Kontrolle**, Stapelübersicht und Augen folgen dem Trainingslevel. Level 1 zeigt hohe Trümpfe, Level 2 zusätzlich die Zahl 0–5, Level 3 bekannte Gegnerkarten und Level 4 vermutete Farb-Schwächen. Die Augen zeigen ab Level 3 nur bekannte Aufnahmekarten und die unbekannte Kartenanzahl für acht Sekunden; echte verdeckte Hände werden nie angezeigt. Während einer offenen Quizfrage werden Aufdeckfunktionen gesperrt; vorherige Aufdeckungen werden geschlossen.
 
 ### Statistik und Trennung
 
 `trainingStats.js` speichert ausschließlich Statistik unter `durak.training.stats.v1` in `localStorage`: Anzahl Checks, richtige Antworten, Trefferquote und aktuelle/beste Serie global sowie je Level. Ein Check zählt zum beim Öffnen gewählten Level, auch wenn er eine Fähigkeit aus einem früheren Level übt. Vermutungen und übersprungene Fragen zählen nicht. Mehrfaches Prüfen derselben Frage wird verhindert. Bei gesperrtem Speicher bleibt die Statistik für die Sitzung nutzbar; fehlerhafte gespeicherte Daten werden verworfen.
 
-Quizantworten, Merkkarten und Vermutungen gehören nie zum Engine-Zustand und werden nie an Bots übergeben. `trainingUI.js` bekommt nur `observation(state, 0)`. Das bewusste Aufdecken läuft separat im UI über einen Callback; verdeckte Karten fließen weder in Quizlösungen noch Trainings- oder Bot-Selektoren. Nur die Statistik überlebt einen Neustart; Spielstand, Merkkarten, Vermutungen und Level-Auswahl sind sitzungsbezogen. Ein neues Spiel löscht die Merkkarten/Vermutungen, erhält aber gewähltes Level und Statistik.
+Quizantworten, Merkkarten und Vermutungen gehören nie zum Engine-Zustand und werden nie an Bots übergeben. `trainingUI.js` bekommt nur `observation(state, 0)`. Die Augen verwenden ausschließlich die levelgefilterte öffentliche Wissensbasis; verdeckte Karten fließen weder in Anzeige, Quizlösungen noch Trainings- oder Bot-Selektoren. Nur die Statistik überlebt einen Neustart; Spielstand, Merkkarten, Vermutungen und Level-Auswahl sind sitzungsbezogen. Ein neues Spiel löscht die Merkkarten/Vermutungen, erhält aber gewähltes Level und Statistik.
 
 ### Später Level 5–7 ergänzen
 
@@ -143,7 +143,7 @@ Quizantworten, Merkkarten und Vermutungen gehören nie zum Engine-Zustand und we
 - **`trainingStats.js`:** Statistikversion bei Schema-Erweiterung erhöhen und gespeicherte ältere Level migrieren.
 - **`trainingUI.js`:** passende, durch Fähigkeiten freigeschaltete Bedienung ergänzen.
 
-Die Engine und Bot-Strategien müssen dafür nicht verändert werden. Level 5–7, Handrekonstruktion, KI-Coaching und Cloud-Synchronisation sind nicht implementiert.
+Die Engine und Bot-Strategien müssen dafür nicht verändert werden. Level 5–7, vollständige Handrekonstruktion und Cloud-Synchronisation sind nicht implementiert. Der regelbasierte Coach ist in BOTS-COACH.md beschrieben.
 
 ## PWA und iPhone
 

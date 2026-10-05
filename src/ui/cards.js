@@ -1,3 +1,4 @@
+import {trainingKnowledge} from '../knowledge/trainingKnowledge.js';
 import {SUITS, RANKS} from '../game/cards.js';
 
 export const suitName = {'♠':'Pik','♥':'Herz','♦':'Karo','♣':'Kreuz'};
@@ -20,5 +21,10 @@ export function discardRows(discarded) {
   return SUITS.map(suit=>({suit,name:suitName[suit],cards:RANKS.map(rank=>({rank,out:out.has(suit+rank)}))}));
 }
 export function renderDiscardOverview(root, discarded) {
-  root.innerHTML=discardRows(discarded).map(row=>`<section class="discard-suit ${['♥','♦'].includes(row.suit)?'red':''}"><h3>${row.suit} ${row.name}</h3><div class="discard-ranks">${row.cards.map(c=>`<span class="discard-rank ${c.out?'is-out':''}" aria-label="${row.name} ${c.rank}: ${c.out?'sicher draußen':'nicht sicher draußen'}">${c.rank}<small>${c.out?'✓':'·'}</small></span>`).join('')}</div></section>`).join('');
+  root.innerHTML=discardRows(discarded).map(row=>`<section class="discard-suit ${['♥','♦'].includes(row.suit)?'red':''}"><h3>${row.suit} ${row.name}</h3><div class="discard-ranks">${row.cards.map(c=>`<span class="discard-rank ${c.out?'is-out':''}" aria-label="${row.name} ${c.rank}: ${c.out?'raus':'unbekannt'}">${c.rank}<small>${c.out?'✓':'·'}</small></span>`).join('')}</div></section>`).join('');
+}
+
+export function renderTrainingOverview(root,view,level){
+ const facts=trainingKnowledge(view,level);
+ root.innerHTML='<p>Level '+level+' · Trumpf '+view.trump+'</p><div class="touch-options">'+Object.entries(facts.knownTrumpState.facesOut).map(([rank,out])=>'<span class="chip">'+rank+' '+view.trump+': '+(out?'raus':'unbekannt')+'</span>').join('')+'</div>'+(level>=2?'<p>Zahlentrümpfe raus: <strong>'+facts.knownTrumpState.numberOut+' / 5</strong></p>':'');
 }

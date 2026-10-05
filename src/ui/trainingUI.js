@@ -1,3 +1,4 @@
+import {trainingKnowledge} from '../knowledge/trainingKnowledge.js';
 import {SUITS, RANKS} from '../game/cards.js';
 import {LEVELS, levelDefinition, hasFeature} from '../training/trainingLevels.js';
 import {createTrainingState, configureTraining, observeTraining, rememberCard, forgetCard, toggleWeakness} from '../training/trainingState.js';
@@ -38,13 +39,13 @@ export function createTrainingUI({root, onChange}) {
     let body = '';
     if (result) {
       const solution = result.solution;
-      const text = memory ? cardLabel(solution.card) : `${quiz.includeNumbers ? `${solution.number} Zahlentrümpfe (6–10) · ` : ''}${solution.faces.length ? solution.faces.join(', ') : 'Keine hohen Trümpfe'} sicher raus`;
+      const text = memory ? cardLabel(solution.card) : `${quiz.includeNumbers ? `${solution.number} Zahlentrümpfe (6–10) · ` : ''}${solution.faces.length ? solution.faces.join(', ') : 'Keine hohen Trümpfe'} raus`;
       body = `<div class="check-result ${result.correct?'correct':'incorrect'}" role="status" tabindex="-1"><strong>${result.correct?'Richtig ✓':'Noch nicht richtig'}</strong><p>Lösung: ${text}</p></div><button data-action="close">Weiterspielen →</button>`;
     } else {
       if (memory) body = `<p>Welche Karte hast du dir bei ${opponent(quiz.player)} gemerkt?</p><div class="touch-options" role="group" aria-label="Farbe wählen">${SUITS.map(s=>`<button data-suit="${s}" aria-pressed="${answer.suit===s}">${s} ${suitNames[s]}</button>`).join('')}</div><div class="touch-options" role="group" aria-label="Rang wählen">${RANKS.map(r=>`<button data-rank="${r}" aria-pressed="${answer.rank===r}">${r}</button>`).join('')}</div>`;
       else {
-        if (quiz.includeNumbers) body += `<p>Wie viele Zahlentrümpfe <strong>6–10</strong> sind sicher raus?</p><div class="touch-options" role="group" aria-label="Zahlentrümpfe raus">${[0,1,2,3,4,5].map(n=>`<button data-number="${n}" aria-pressed="${answer.number===n}">${n}</button>`).join('')}</div>`;
-        body += `<p>Welche hohen Trümpfe sind sicher raus? <small>Keine Auswahl bedeutet: keiner.</small></p><div class="touch-options" role="group" aria-label="Hohe Trümpfe raus">${['J','Q','K','A'].map(r=>`<button data-face="${r}" aria-pressed="${answer.faces.includes(r)}">${r} ${view.trump}</button>`).join('')}</div>`;
+        if (quiz.includeNumbers) body += `<p>Wie viele Zahlentrümpfe <strong>6–10</strong> sind raus?</p><div class="touch-options" role="group" aria-label="Zahlentrümpfe raus">${[0,1,2,3,4,5].map(n=>`<button data-number="${n}" aria-pressed="${answer.number===n}">${n}</button>`).join('')}</div>`;
+        body += `<p>Welche hohen Trümpfe sind raus? <small>Keine Auswahl bedeutet: keiner.</small></p><div class="touch-options" role="group" aria-label="Hohe Trümpfe raus">${['J','Q','K','A'].map(r=>`<button data-face="${r}" aria-pressed="${answer.faces.includes(r)}">${r} ${view.trump}</button>`).join('')}</div>`;
       }
       const incomplete = memory ? !answer.suit || !answer.rank : quiz.includeNumbers && answer.number === null;
       body += `<div class="training-actions"><button data-action="submit" ${incomplete?'disabled':''}>Prüfen</button><button class="quiet" data-action="close">Überspringen</button></div>`;
@@ -53,9 +54,9 @@ export function createTrainingUI({root, onChange}) {
   }
   function memoryMarkup() {
     if (!hasFeature(state.level,'memory')) return '';
-    return `<section class="memory-section"><h3>Sicher bekannte Karte · eine pro Gegner</h3><p class="note">Wähle aus sichtbar aufgenommenen Karten. Die gemerkte Karte bleibt verborgen, bis du sie abfragst oder kontrollierst. Beim Ausspielen wird sie automatisch vergessen.</p><div class="training-opponents">${[1,2].map(id=>{
+    return `<section class="memory-section"><h3>Bekannte Karte · eine pro Gegner</h3><p class="note">Wähle aus sichtbar aufgenommenen Karten. Die gemerkte Karte bleibt verborgen, bis du sie abfragst oder kontrollierst. Beim Ausspielen wird sie automatisch vergessen.</p><div class="training-opponents">${[1,2].map(id=>{
       const candidates=memoryCandidates(view,id), saved=state.remembered[id];
-      return `<article><h4>${opponent(id)}</h4><p>${saved?'Eine Karte sicher gemerkt ✓':'Noch keine Karte gemerkt.'}</p><div class="training-actions"><button data-pick="${id}" ${!candidates.length||quiz?'disabled':''}>${saved?'Karte wechseln':'Karte merken'}</button><button data-recall="${id}" ${!saved||quiz||picking!==null?'disabled':''}>Karte abfragen</button>${saved?`<button class="quiet" data-forget="${id}" ${quiz?'disabled':''}>Vergessen</button>`:''}</div>${!candidates.length?'<p class="note">Noch keine sichtbar aufgenommene Karte auf dieser Hand.</p>':''}</article>`;
+      return `<article><h4>${opponent(id)}</h4><p>${saved?'Eine Karte gemerkt ✓':'Noch keine Karte gemerkt.'}</p><div class="training-actions"><button data-pick="${id}" ${!candidates.length||quiz?'disabled':''}>${saved?'Karte wechseln':'Karte merken'}</button><button data-recall="${id}" ${!saved||quiz||picking!==null?'disabled':''}>Karte abfragen</button>${saved?`<button class="quiet" data-forget="${id}" ${quiz?'disabled':''}>Vergessen</button>`:''}</div>${!candidates.length?'<p class="note">Noch keine sichtbar aufgenommene Karte auf dieser Hand.</p>':''}</article>`;
     }).join('')}</div></section>`;
   }
   function pickerMarkup() {
@@ -65,13 +66,14 @@ export function createTrainingUI({root, onChange}) {
   }
   function weaknessMarkup() {
     if (!hasFeature(state.level,'weakness')) return '';
-    return `<section class="weakness-section"><h3>Vermutete Farb-Schwäche</h3><p class="note">„Vermutlich schwach oder leer“ ist kein sicherer Kartenbeweis: Ein Gegner kann freiwillig Trumpf spielen oder aufnehmen. Diese Markierungen werden nicht als richtig/falsch bewertet.</p><div class="training-opponents">${[1,2].map(id=>`<article><h4>${opponent(id)}</h4><div class="touch-options">${SUITS.map(s=>`<button data-weak-player="${id}" data-weak-suit="${s}" aria-pressed="${Boolean(state.weaknesses[id]?.[s])}">${s} ${suitNames[s]}${state.weaknesses[id]?.[s]?' · vermutet':''}</button>`).join('')}</div></article>`).join('')}</div></section>`;
+    return `<section class="weakness-section"><h3>Vermutete Farb-Schwäche</h3><p class="note">„Vermutlich schwach oder leer“ ist kein Kartenbeweis: Ein Gegner kann freiwillig Trumpf spielen oder aufnehmen. Diese Markierungen werden nicht als richtig/falsch bewertet.</p><div class="training-opponents">${[1,2].map(id=>`<article><h4>${opponent(id)}</h4><div class="touch-options">${SUITS.map(s=>`<button data-weak-player="${id}" data-weak-suit="${s}" aria-pressed="${Boolean(state.weaknesses[id]?.[s])}">${s} ${suitNames[s]}${state.weaknesses[id]?.[s]?' · vermutet':''}</button>`).join('')}</div></article>`).join('')}</div></section>`;
   }
   function analysisMarkup() {
     if (quiz || picking !== null) return '';
-    const a=selectTrainingFacts(view);
-    return `<details class="training-details" data-panel="analysis" ${analysisOpen?'open':''}><summary>Analyse / Kontrolle</summary><p class="note">Bewusst nachsehen: Diese Anzeige beeinflusst die Bots nicht. Mit dem Augen-Symbol neben Uhu oder Aal kannst du die Hand für 8 Sekunden aufdecken.</p><div class="analysis-grid"><article><h3>Sicher aus dem Spiel · ${a.discarded.length}</h3>${chips(a.discarded)}</article><article><h3>Trümpfe noch im Spiel · ${a.trumpsRemaining.length}</h3>${chips(a.trumpsRemaining)}<p>In Händen, auf dem Tisch oder im Stapel.</p><p>${a.memory.numberTrumpsOut} Zahlentrümpfe raus · ${Object.entries(a.memory.facesOut).map(([rank,out])=>`${rank}: ${out?'raus':'nicht sicher raus'}`).join(' · ')}</p></article><article><h3>Sichtbar aufgenommene Karten</h3>${[1,2].map(id=>`<h4>${opponent(id)}</h4><p>Noch sicher auf der Hand:</p>${chips(a.knownHeld[id])}${hasFeature(state.level,'memory')&&state.remembered[id]?`<p>Deine gemerkte Karte: ${chips([state.remembered[id].card])}</p>`:''}`).join('')}</article></div><details><summary>Vollständiger Aufnahmeverlauf</summary>${a.pickups.map(e=>`<p>Runde ${e.round} · ${e.player===0?'Du':opponent(e.player)}: ${chips(e.cards)}</p>`).join('')||'<p>Noch keine Aufnahme.</p>'}</details></details>`;
+    const a=trainingKnowledge(view,state.level);
+    return `<details class="training-details" data-panel="analysis" ${analysisOpen?'open':''}><summary>Analyse / Kontrolle</summary><p class="note">Level ${state.level}: Nur die freigegebenen Informationen werden angezeigt.</p><div class="analysis-grid"><article><h3>Hohe Trümpfe · raus</h3>${chips(a.discardedCards)}<p>${Object.entries(a.knownTrumpState.facesOut).map(([rank,out])=>rank+': '+(out?'raus':'unbekannt')).join(' · ')}</p>${state.level>=2?'<p>Zahlentrümpfe raus: '+a.knownTrumpState.numberOut+' / 5</p>':''}</article>${state.level>=3?'<article><h3>Bekannte Gegnerkarten</h3>'+[1,2].map(id=>'<h4>'+opponent(id)+'</h4>'+chips(a.knownCardsByPlayer[id])+'<p>Unbekannt: '+Math.max(0,(view.players.find(p=>p.id===id)?.count??0)-a.knownCardsByPlayer[id].length)+'</p>').join('')+'</article>':''}${state.level>=4?'<article><h3>Vermutete Farb-Schwächen</h3>'+a.suspectedSuitWeaknesses.filter(w=>w.player!==0).map(w=>'<p>'+opponent(w.player)+' · '+suitNames[w.suit]+': vermutet</p>').join('')+'</article>':''}</div></details>`;
   }
+
   function statsMarkup() {
     return `<details class="training-details" data-panel="stats" ${statsOpen?'open':''}><summary>Trainingsstatistik · ${stats.correct} / ${stats.checks} richtig</summary><p>Trefferquote ${accuracy(stats)} · Aktuelle Serie ${stats.streak} · Beste Serie ${stats.best}</p><div class="stats-table"><table><thead><tr><th>Level</th><th>Checks</th><th>Richtig</th><th>Quote</th><th>Serie</th><th>Beste</th></tr></thead><tbody>${LEVELS.filter(l=>l.id<=state.level).map(l=>{const s=stats.levels[l.id];return `<tr><th>${l.id}</th><td>${s.checks}</td><td>${s.correct}</td><td>${accuracy(s)}</td><td>${s.streak}</td><td>${s.best}</td></tr>`;}).join('')}</tbody></table></div><p class="note">Checks zählen zum beim Öffnen gewählten Level. Überspringen und Vermutungen zählen nicht. ${storageAvailable?'Nur lokal in diesem Browser gespeichert.':'Speichern ist nicht verfügbar; Statistik gilt nur für diese Sitzung.'}</p></details>`;
   }
@@ -94,7 +96,7 @@ export function createTrainingUI({root, onChange}) {
       if(d.remember){state=rememberCard(state,view,picking,d.remember);picking=null;redraw();}
       if(d.recall)begin('memory',Number(d.recall));
       if(d.forget){state=forgetCard(state,Number(d.forget));redraw();}
-      if(d.weakPlayer){state=toggleWeakness(state,Number(d.weakPlayer),d.weakSuit);render();}
+      if(d.weakPlayer){state=toggleWeakness(state,Number(d.weakPlayer),d.weakSuit);redraw();}
 
     });
   }
@@ -102,6 +104,8 @@ export function createTrainingUI({root, onChange}) {
     // Restore without replaying events or scoring a question a second time.
     snapshot(){return structuredClone({state,quiz,answer,result,picking,analysisOpen,statsOpen,stats});},
     restore(saved,publicView){({state,quiz,answer,result,picking,analysisOpen,statsOpen,stats}=structuredClone(saved));view=publicView;if(storage)saveStats(storage,stats);render();},
+    getLevel:()=>state.level,
+    getWeaknesses:()=>structuredClone(state.weaknesses),
     isPaused: paused,
     update(publicView) {view=publicView;state=observeTraining(state,view);render();},
     setEnabled(enabled) {state={...configureTraining(state,{enabled}),completedRound:null};quiz=null;picking=null;result=null;analysisOpen=false;redraw();},

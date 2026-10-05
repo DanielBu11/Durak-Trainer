@@ -1,27 +1,12 @@
+import {publicGameKnowledge} from '../knowledge/publicGameKnowledge.js';
 import {deck, beats} from '../game/cards.js';
 
 // Public facts and cautious estimates, never reconstructed hidden hands.
 // Taking is NOT proof of a void suit; it may be a voluntary strategic choice.
 export function publicKnowledge(view) {
-  const held = new Map(view.players.map(p => [p.id, new Map()]));
-  const weaknesses = new Map(), openings = new Map(), rounds = new Set();
-  for (const event of view.events) {
-    if (event.type === 'pickup') {
-      if (!held.has(event.player)) held.set(event.player, new Map());
-      for (const c of event.cards) held.get(event.player).set(c.id, c);
-      for (const suit of new Set(event.cards.filter(c => c.suit !== view.trump).map(c => c.suit))) {
-        weaknesses.set(`${event.player}:${suit}`, Math.min(2, (weaknesses.get(`${event.player}:${suit}`) ?? 0) + 1));
-      }
-    } else if (event.type === 'play') {
-      held.get(event.player)?.delete(event.card.id);
-      weaknesses.delete(`${event.player}:${event.card.suit}`);
-      if (!rounds.has(event.round)) {
-        rounds.add(event.round);
-        if (event.player === view.player) openings.set(event.card.id, (openings.get(event.card.id) ?? 0) + 1);
-      }
-    }
-  }
-  return {held, weaknesses, openings, trumpsOut: view.discarded.filter(c => c.suit === view.trump).length};
+ const k=publicGameKnowledge(view);
+ return {held:new Map(k.knownCardsByPlayer.map((cards,id)=>[id,new Map(cards.map(c=>[c.id,c]))])),
+ weaknesses:new Map(k.suspectedSuitWeaknesses.map(w=>[`${w.player}:${w.suit}`,w.strength])),openings:k.openings,trumpsOut:k.knownTrumpState.outCount};
 }
 export function attackEvidence(view, knowledge, attack) {
   const known = [...(knowledge.held.get(view.defender)?.values() ?? [])];
