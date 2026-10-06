@@ -26,6 +26,8 @@ test('stable memory survives lower priorities, replaced only by clearly stronger
 test('played memory is removed; next relevant known card moves up',()=>{
  const v=view(['♠Q','♥A']);let s=acknowledgeMemoryNotice(observeMemory(createMemory(),v));
  v.events.push({type:'play',player:1,round:2,card:c('♠Q')});v.players[1].count--;
+ s=observeMemory(s,v);assert.deepEqual(active(s),[]);assert.equal(s.notices.length,0);
+ v.events.push({type:'discard',round:2,cards:[c('♠Q')]});v.discarded.push(c('♠Q'));
  s=observeMemory(s,v);assert.deepEqual(active(s),['♥A']);
  v.events.push({type:'play',player:1,round:3,card:c('♥A')});v.players[1].count=0;s=observeMemory(s,v);assert.deepEqual(active(s),[]);
 });
@@ -47,4 +49,15 @@ test('notices expire but no amount of time or public actions creates an automati
  assert.ok(!ui.markup().includes('Merke bei'));assert.ok(!ui.markup().includes('Welche Karte'));
  assert.equal(ui.snapshot().question,undefined);assert.equal(callbacks.length,1);
  ui.reset();for(const fn of callbacks)fn();assert.equal(ui.markup(),'');
+});
+
+for(const player of [1,2])test('same remembered card returns silently to player '+player,()=>{
+ const v=view(['♠9','♥A']);v.events[0].player=player;
+ let s=acknowledgeMemoryNotice(observeMemory(createMemory(),v));
+ v.events.push({type:'play',player,round:2,card:c('♠9')});
+ s=observeMemory(s,v);assert.deepEqual(active(s,player),[]);assert.equal(s.notices.length,0);
+ v.events.push({type:'pickup',player,round:2,cards:[c('♠9')]});
+ s=observeMemory(s,v);assert.deepEqual(active(s,player),['♠9']);assert.equal(s.notices.length,0);
+ v.events.push({type:'pickup',player,round:3,cards:[c('♠K')]});
+ s=observeMemory(s,v);assert.deepEqual(active(s,player),['♠K']);assert.equal(s.notices.length,1);
 });

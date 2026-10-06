@@ -30,6 +30,6 @@ export function createMemoryUI({onChange,storage,set=setTimeout,clear=clearTimeo
   reset(){cancel();memory=createMemory(memory.mode);enabled=false;},
   suspend(){cancel();},
   snapshot:()=>structuredClone(memory),
-  restore(saved){cancel();memory=createMemory(saved?.mode);if(saved?.active)memory.active=structuredClone(saved.active);enabled=false;},
+  restore(saved){cancel();memory=createMemory(saved?.mode);if(saved?.active)memory.active=structuredClone(saved.active);if(saved?.tracked)memory.tracked=structuredClone(saved.tracked);enabled=false;},
  };
 }

@@ -29,9 +29,10 @@ const revealed=new Set(), revealTimers=new Map();
 function clearReveals(){revealed.clear();for(const t of revealTimers.values())clearTimeout(t);revealTimers.clear();}
 function revealHand(id){clearTimeout(revealTimers.get(id));if(revealed.has(id))revealed.delete(id);else{revealed.add(id);revealTimers.set(id,setTimeout(()=>{revealed.delete(id);render();},8000));}render();}
 const trainingUI=createTrainingUI({root:$('training-panel'),dialog:$('training-dialog'),onChange:()=>{if(trainingUI.isPaused())clearReveals();persist();render();}});
+const gamePaused=()=>trainingUI.isPaused()||$('discard-dialog').open;
 function snapshot(){return {game:state,training:trainingUI.snapshot(),difficulty:$('difficulty').value};}
 function move(action){
-  if(!state||trainingUI.isPaused()||moving)return;
+  if(!state||gamePaused()||moving)return;
   try{
     const before=state, visual=captureMotion(state.actor), next=act(state,action);
     if(history.isPast)resultGate.reset();
@@ -73,8 +74,8 @@ function showMoveFeedback(before,events,action){
   $('move-feedback').textContent=pickup||events.some(e=>e.type==='discard')?'':action.type==='take'?says(before.actor,'nimmt auf'):action.type==='attack'?says(before.actor,'greift an'):action.type==='defend'?says(before.actor,'verteidigt'):'';
   clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{$('move-feedback').textContent='';},1800);
 }
-function botStep(){if(state && !moving && !trainingUI.isPaused() && !state.finished && state.actor!==0)move(chooseAction(observation(state),$('difficulty').value));}
-function schedule(){botScheduler.cancel();if(state && !moving && !history?.isPast && !trainingUI.isPaused() && !state.finished && state.actor!==0 && $('speed').value!=='manual')botScheduler.schedule(botStep,Number($('speed').value));}
+function botStep(){if(state && !moving && !gamePaused() && !state.finished && state.actor!==0)move(chooseAction(observation(state),$('difficulty').value));}
+function schedule(){botScheduler.cancel();if(state && !moving && !history?.isPast && !gamePaused() && !state.finished && state.actor!==0 && $('speed').value!=='manual')botScheduler.schedule(botStep,Number($('speed').value));}
 // Move the existing controls, preserving their values and event handlers.
 const mobileLayout=window.matchMedia('(max-width:650px)');
 function placeSettings(){
@@ -96,7 +97,7 @@ function render(){
   if(!state){botScheduler.cancel();return;}
   trainingUI.update(observation(state,0),{ready:!moving&&!history?.isPast});
   const blocked=trainingUI.blockedPlayer();if(blocked)revealed.delete(blocked);
-  const actions=legalActions(state), paused=trainingUI.isPaused(), human=state.actor===0&&!state.finished&&!paused&&!moving, training=$('training').checked;
+  const actions=legalActions(state), paused=gamePaused(), human=state.actor===0&&!state.finished&&!paused&&!moving, training=$('training').checked;
   const publicState=observation(state,0),level=trainingUI.getLevel();
   $('quiz-trigger').disabled=moving||paused||Boolean(history?.isPast)||state.finished;
   $('coach-trigger').disabled=!human||paused;
@@ -126,7 +127,7 @@ function render(){
   $('status').textContent=state.finished?(state.loser===null?'Unentschieden – alle Hände sind leer.':`${state.players[state.loser].name} ${state.loser===0?'bist':'ist'} Durak.`):human?(state.phase==='defend'?'Du verteidigst.':state.taking?'Du kannst noch nachwerfen.':'Du bist am Zug.'): `${state.players[state.actor].name} ${state.phase==='defend'?(state.actor===0?'verteidigst':'verteidigt'):(state.actor===0?'bist am Zug':'ist am Zug')}.`;
   $('hint').textContent=state.finished?'Eine neue Partie wartet auf dich.':state.taking?`${state.defender===0?'Du nimmst':state.players[state.defender].name+' nimmt'} auf. Passende Werte dürfen noch dazu.`:human?(state.phase==='defend'?'Klicke eine höhere Karte derselben Farbe oder einen Trumpf.':state.table.length?'Wirf einen passenden Wert nach oder beende deinen Angriff.':'Wähle eine Karte, um den Angriff zu eröffnen.'):state.players[0].out?'Du bist fertig. Die Bots spielen die Partie zu Ende.':'Beobachte die Karten und plane deinen nächsten Zug.';
   $('take').disabled=!human||!actions.some(a=>a.type==='take');$('pass').disabled=!human||!actions.some(a=>a.type==='pass');$('step').hidden=$('speed').value!=='manual'||history?.isPast;$('step').disabled=state.finished||state.actor===0||paused||moving;
-  if(paused){$('status').textContent='Training · Spiel pausiert';$('hint').textContent='Prüfe deine Antwort oder überspringe den Check, um weiterzuspielen.';}
+  if(paused){$('status').textContent='Training · Spiel pausiert';$('hint').textContent=$('discard-dialog').open?'Schließe die Kartenübersicht, um weiterzuspielen.':'Prüfe deine Antwort oder überspringe den Check, um weiterzuspielen.';}
   const stamp=JSON.stringify([state.events.length,state.actor,state.phase,history?.index,history?.length,level,training,level>=4?trainingUI.getWeaknesses():null]);
   if(coachStamp!==stamp){coachAdvice=null;coachStamp=stamp;}
   renderCoachUI($('coach-panel'),{enabled:training,level,advice:coachAdvice});
@@ -139,7 +140,8 @@ $('coach-trigger').onclick=()=>{
   render();$('coach-dialog').showModal();
 };
 $('close-coach').onclick=()=>$('coach-dialog').close();
-$('stock').onclick=()=>{if(!state)return;if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();};
+$('stock').onclick=()=>{if(!state)return;if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();botScheduler.cancel();render();};
+$('discard-dialog').addEventListener('close',()=>render());
 $('close-discard').onclick=()=>$('discard-dialog').close();
 $('discard-dialog').onclick=e=>{if(e.target===$('discard-dialog'))$('discard-dialog').close();};
 $('take').onclick=()=>move({type:'take'});$('pass').onclick=()=>move({type:'pass'});$('step').onclick=botStep;
