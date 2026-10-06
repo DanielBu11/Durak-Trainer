@@ -203,3 +203,7 @@ Referenz: https://docs.github.com/en/pages/getting-started-with-github-pages/usi
 `src/ui/memoryUI.js` steuert nur kurze Merkhilfen und Statistik; der Hinweis-Timer blendet Merkmeldungen aus und startet keine Fragen. `src/training/manualCheck.js` erstellt öffentliche Frage-Snapshots, mischt Antwortoptionen und wertet den vollständigen Check aus. `src/ui/trainingUI.js` öffnet das Popup nur nach Antippen des Fragezeichens. Training AUS, Levelwechsel, neue Partie und Replay schließen offene Checks. Replay speichert Merkkarten mit; alte Hinweis-Timer werden verworfen. Statistik nach 3A/3B und Uhu/Aal liegt unter `durak.memory.stats.v1` lokal im Browser.
 
 `src/ui/setup.js` speichert ausschließlich Einstellungen unter `durak.game.settings.v1`. Ohne expliziten Start existieren weder Runde noch Bot-Aufträge. 3A/3B sind zwei Varianten derselben Wissensstufe 3; der Coach und die übrigen Level-Grenzen ändern sich dadurch nicht.
+
+### Sichtbare Versionsnummer
+
+Die Versionsnummer steht zentral in `dist/index.html` bei `id="app-version"`, aktuell **01.01**. Bei kleinen Änderungen die hintere Zahl erhöhen (01.02), bei großen Änderungen die vordere Zahl erhöhen und die hintere auf 00 setzen (02.00). Beide Teile werden zweistellig angezeigt. Bei jeder veröffentlichten Änderung diese Nummer mit aktualisieren. Der Build prüft das Format; für den Offline-Cache bleibt zusätzlich ein automatisch berechneter interner Inhaltshash erhalten.

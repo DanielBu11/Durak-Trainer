@@ -76,7 +76,9 @@ test('cache upgrades remove only old versions of this exact app scope',async()=>
 });
 test('build is reproducible and cache version reflects production content',async()=>{
   const html=await readFile(path.join(outputRoot,'index.html'),'utf8');
-  assert.ok(html.includes('Version: '+production.version));
+  assert.match(production.release,/^\d{2}\.\d{2}$/);
+  assert.ok(html.includes('Version: '+production.release));
+  assert.ok(!html.includes('Version: '+production.version));
   assert.ok(!html.includes('Version: lokale Entwicklung'));
   assert.match(production.version,/^[a-f0-9]{16}$/);assert.ok(worker.includes(production.version));
   const next=await build();assert.equal(next.version,production.version);

@@ -30,16 +30,15 @@ export async function build() {
   const hash=createHash('sha256').update(worker);
   for(const asset of assets) hash.update(asset).update(await readFile(path.join(outputRoot,asset)));
   const version=hash.digest('hex').slice(0,16);
-  // Stamp the cached HTML with the same content identity as the service worker.
-  // Hash the unstamped sources above so repeated builds stay reproducible.
-  const indexPath=path.join(outputRoot,'index.html');
-  const index=await readFile(indexPath,'utf8');
-  await writeFile(indexPath,index.replace('Version: lokale Entwicklung', 'Version: '+version));
+  // Human release number lives in the footer; the content hash stays internal.
+  const index=await readFile(path.join(outputRoot,'index.html'),'utf8');
+  const release=index.match(/id="app-version"[^>]*>Version: (\d{2}\.\d{2})</)?.[1];
+  if(!release)throw Error('Footer version must use XX.YY format');
   const generated=worker.replace(/const VERSION = '[^']+';/,`const VERSION = '${version}';`)
     .replace(/\/\* ASSETS_START \*\/[\s\S]*?\/\* ASSETS_END \*\//,`/* ASSETS_START */\nconst ASSETS = ${JSON.stringify(assets.filter(f=>!f.endsWith('.mp3')).map(f=>'./'+f))};\n/* ASSETS_END */`)
     .replace(/\/\* AUDIO_START \*\/[\s\S]*?\/\* AUDIO_END \*\//,`/* AUDIO_START */\nconst AUDIO_ASSETS = ${JSON.stringify(assets.filter(f=>f.endsWith('.mp3')).map(f=>'./'+f))};\n/* AUDIO_END */`);
   await writeFile(path.join(outputRoot,'sw.js'),generated);
   console.log(`Production: _site (${assets.length} cached assets, version ${version})`);
-  return {assets,version};
+  return {assets,version,release};
 }
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) await build();
