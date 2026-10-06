@@ -21,3 +21,45 @@ test('overview marks exactly discarded cards, including all four suits and nine 
   assert.deepEqual(rows.flatMap(r=>r.cards.filter(c=>c.out).map(c=>r.suit+c.rank)).sort(),['♥6','♠A'].sort());
   assert.equal(discardRows([]).flatMap(r=>r.cards).filter(c=>c.out).length,0);
 });
+
+import {renderDiscardOverview} from '../src/ui/cards.js';
+import {canInspectStock} from '../src/ui/roundLifecycle.js';
+import {readFile} from 'node:fs/promises';
+test('stock overview renders every discarded suit and rank identically through level changes',async()=>{
+ const discarded=['♣6','♦8','♥J','♠A'].map(c),root={innerHTML:''};
+ const app=await readFile(new URL('../src/ui/app.js',import.meta.url),'utf8');
+ // Both initial opening and refresh must use the complete discard pile.
+ const calls=app.match(/renderDiscardOverview\(\$\('discard-overview'\),state\.discarded\)/g);
+ assert.equal(calls.length,2);assert.ok(!app.includes('renderTrainingOverview'));
+ let expected;
+ for(const level of [1,2,3,4,1,4,2]){
+  const training={enabled:true,level};assert.ok(canInspectStock(training.enabled));
+  renderDiscardOverview(root,discarded);
+  expected??=root.innerHTML;assert.equal(root.innerHTML,expected);
+  for(const label of ['Kreuz 6','Karo 8','Herz J','Pik A'])assert.ok(root.innerHTML.includes(`${label}: raus`));
+  assert.equal((root.innerHTML.match(/class="discard-rank is-out"/g)??[]).length,4);
+ }
+});
+function discardFixture(){
+ const s=createGame();Object.assign(s,{stock:[c('♠6')],discarded:[],trump:'♠',trumpCard:c('♠6'),attacker:0,defender:1,actor:0,phase:'attack',table:[],limit:2,passed:[],taking:false});
+ s.players.forEach((p,i)=>p.hand=[['♥6','♣8'],['♥7','♣9'],['♦9']][i].map(c));return s;
+}
+const outIds=s=>discardRows(s.discarded).flatMap(r=>r.cards.filter(c=>c.out).map(c=>r.suit+c.rank)).sort();
+test('stock overview excludes table/hand/stock and adds cards only after successful round completion',()=>{
+ let s=discardFixture();assert.deepEqual(outIds(s),[]);
+ s=act(s,{type:'attack',card:'♥6'});assert.deepEqual(outIds(s),[]);
+ s=act(s,{type:'defend',card:'♥7',target:0});assert.deepEqual(outIds(s),[]);
+ s=act(s,{type:'pass'});assert.deepEqual(outIds(s),[]);
+ s=act(s,{type:'pass'});assert.deepEqual(outIds(s),['♥6','♥7']);
+});
+test('stock overview never marks collected cards as discarded',()=>{
+ let s=discardFixture();s=act(s,{type:'attack',card:'♥6'});s=act(s,{type:'take'});
+ s=act(s,{type:'pass'});s=act(s,{type:'pass'});
+ assert.ok(s.players[1].hand.some(c=>c.id==='♥6'));assert.deepEqual(outIds(s),[]);
+});
+test('training off still blocks stock inspection and closes an open overview',async()=>{
+ assert.equal(canInspectStock(false),false);
+ const app=await readFile(new URL('../src/ui/app.js',import.meta.url),'utf8');
+ assert.ok(app.includes("if(!training&&$('discard-dialog').open)$('discard-dialog').close()"));
+ assert.ok(app.includes("if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;"));
+});

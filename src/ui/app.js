@@ -5,7 +5,7 @@ import {collectionFeedback, createEventFeedback} from './eventFeedback.js';
 import {startFreshRound, roundResult, createResultGate, canInspectStock} from './roundLifecycle.js';
 import {createHistory, createBotScheduler} from './history.js';
 import {captureMotion, animateMove, cancelMotion, motionFinished, pulseStock} from './motion.js';
-import {card, suitName, stockDisplay, renderTrainingOverview} from './cards.js';
+import {card, suitName, stockDisplay, renderDiscardOverview} from './cards.js';
 import {createGame, act, legalActions, observation} from '../game/engine.js';
 import {chooseAction} from '../bots/strategy.js';
 import {createTrainingUI} from './trainingUI.js';
@@ -88,7 +88,7 @@ function render(){
   $('stock').disabled=!canInspectStock(training,paused);
   $('stock').setAttribute('aria-label',training?'Welche Karten sind aus dem Spiel?':'Nachziehstapel · Trumpf '+state.trump);
   if(!training&&$('discard-dialog').open)$('discard-dialog').close();
-  if($('discard-dialog').open)renderTrainingOverview($('discard-overview'),observation(state,0),trainingUI.getLevel());
+  if($('discard-dialog').open)renderDiscardOverview($('discard-overview'),state.discarded);
   $('limit').textContent=`${state.table.length} / ${state.limit}`;
   $('table').replaceChildren();if(!state.table.length)$('table').innerHTML='<div class="empty-table">Die nächste Karte eröffnet die Runde.</div>';
   state.table.forEach((pair,target)=>{const el=document.createElement('div');el.className='pair'+(pair.defense?' covered':'');const a=card(pair.attack,human&&state.phase==='defend'&&!pair.defense);if(a.tagName==='BUTTON'){a.disabled=!actions.some(x=>x.type==='defend'&&x.target===target&&(!selected||x.card===selected));a.setAttribute('aria-label',`${suitName[pair.attack.suit]} ${pair.attack.rank} decken`);a.onclick=()=>{if(selected)move({type:'defend',card:selected,target});else{$('hint').textContent='Wähle zuerst eine passende Karte aus deiner Hand.';}};}el.append(a);if(pair.defense){const d=card(pair.defense);d.classList.add('defense');el.append(d);}else if(selected)el.classList.add('target');$('table').append(el);});
@@ -106,7 +106,7 @@ function render(){
   }});
   if(history)renderHistory();schedule();showResult();
 }
-$('stock').onclick=()=>{if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderTrainingOverview($('discard-overview'),observation(state,0),trainingUI.getLevel());$('discard-dialog').showModal();};
+$('stock').onclick=()=>{if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();};
 $('close-discard').onclick=()=>$('discard-dialog').close();
 $('discard-dialog').onclick=e=>{if(e.target===$('discard-dialog'))$('discard-dialog').close();};
 $('take').onclick=()=>move({type:'take'});$('pass').onclick=()=>move({type:'pass'});$('step').onclick=botStep;

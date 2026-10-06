@@ -1,4 +1,4 @@
-const VERSION = 'development-v16';
+const VERSION = 'development-v17';
 const PREFIX = `durak-pwa:${self.registration.scope}:`;
 const CACHE = PREFIX + VERSION;
 /* ASSETS_START */
