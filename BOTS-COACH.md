@@ -37,15 +37,17 @@ Profi ergänzt die Bewertung der verbleibenden Hand und stärkeres Abgeben hoher
 
 Meister ergänzt eine begrenzte Suche mit denselben Fakten. `bots/meister.js`: Kartenanzahl 8, gleiche Ränge 5, Trumpfreserve 3, Aufnahmedruck 3, Risiko 6, leere Endspielhand 100; Suchbeitrag 0,3. `explainDecision()` liefert gewählte Aktion, Alternativen, Scores und Gründe; bei Meister zusätzlich Suchdetails. Auswahl ist deterministisch, optionales RNG betrifft nur Gleichstände.
 
-Der Coach hat eigene Gewichte in `coach/evaluation.js`, unabhängig von den Bot-Scores. Beispiele: Verteidigung 32, Trumpfeinsatz −10, hoher Trumpf zusätzlich bis −22, Rangpaar 7, bekannte Gegenkarte −18, Farbvermutung 5, Endspielabschluss 120, Suchbeitrag 0,8.
+Der Coach bewertet in `coach/evaluation.js` die Änderung der gesamten Handqualität, unabhängig von den Bot-Scores. Früh/Mitte/Endspiel gewichten Kartenanzahl mit 6/9/16, zusätzliche gleiche Ränge mit 10/12/18 und Trumpfreserve mit 14/12/8. Weitere Faktoren: isolierte hohe Farbkarte bis −6, gegnerischer Aufnahmedruck 22 bzw. 34 im Endspiel, Kosten einer gegnerischen Antwort bis 12, Nachwurfpotenzial 9, Farbvermutung 5, Endspielabschluss 100 und Suchbeitrag 0,65. Es gibt keine abschließende Regel „kleinste Karte“ oder pauschale Trumpfverbote.
+
+Die Verteidigungsbewertung prüft vollständige Zuordnungen zu offenen Angriffen statt gierig die kleinste passende Karte zu wählen (maximal 256 besuchte Zuordnungen je Bewertung). Aufnehmen erhält eine eigene Resthandbewertung einschließlich der sichtbaren Tischkarten und eines phasenabhängigen Tempoverlusts. Neu geöffnete Ränge werden auf bekannte gegnerische Nachwürfe und unbekannte Möglichkeiten geprüft. Eine leere Hand bei noch offenen Angriffen ist ausdrücklich kein Sieg.
 
 ## Bedingte Mehrzugplanung und Grenzen
 
-`planning/publicLines.js` untersucht maximal 8 Kandidaten, Beam-Breite 4, bis zu 4 eigene Aktionen und 48 Knoten pro Kandidat: höchstens 384 Knoten je Anfrage. Es prüft bekannte Antworten, eine plausible unbekannte Antwort aus dem öffentlichen Möglichkeitsraum sowie eine bedingte Aufnahme. Es zieht niemals echte verdeckte Karten zur Simulation heran.
+Meister verwendet unverändert `planning/publicLines.js`. Der Coach hat nun seine eigene Suche in `coach/planning.js`; Änderungen daran verändern keine Bot-Entscheidung. Alle legalen Kandidaten erhalten eine Positionsbewertung. Bis zu 8 davon werden vertieft: Breite 4, bis zu 4 eigene Aktionen, höchstens 48 Knoten pro Kandidat bzw. 384 insgesamt. Gegnerszenarien bleiben auf jeder Suchtiefe getrennt; die Fortsetzung wird gegen die ungünstigste untersuchte Antwort bewertet. Die Darstellung kann zusätzlich eine ausdrücklich bedingte günstige Linie zeigen. Es werden bekannte Antworten, eine mögliche unbekannte Antwort und eine Aufnahme betrachtet, niemals echte verdeckte Karten.
 
 Jeder Knoten führt Resthand, Tischränge, Angriffsgrenze, bekannte Gegnerkarten und Kartenanzahlen fort. Nachwürfe müssen zum Tisch passen. Eine folgende Runde nach Verteidigung steht ausdrücklich unter der Bedingung, dass keine weiteren Nachwürfe folgen. Es werden keine Nachziehkarten erfunden. Deshalb sind Linien bedingte Pläne, keine vollständigen Spielsimulationen oder garantierten Gewinnwege. Bei weniger sinnvollen Aktionen wird eine kürzere Linie gezeigt.
 
-Der Coach nutzt ab Level 3 diese Suche und zeigt bis zu zwei ähnlich bewertete Linien (Score-Abstand höchstens 8), jeweils mit Resthand und bis zu vier eigenen Aktionen. Unbekannte Antworten werden als Möglichkeiten formuliert. Es gibt keine dauernden Tipps oder Hintergrundsuche.
+Der Coach sucht auf jedem Level, ausschließlich mit dessen freigegebenen Informationen. Ab Level 3 kommen bekannte Gegnerkarten hinzu, ab Level 4 Farbvermutungen. Es erscheinen eine Empfehlung mit zwei bis vier Gründen und bis zu zwei ähnlich bewertete Linien (Score-Abstand höchstens 8), jeweils mit Resthand und bis zu vier eigenen Aktionen. Unbekannte Antworten werden als Möglichkeiten formuliert. Es gibt keine dauernden Tipps oder Hintergrundsuche.
 
 ## Prüfung und Kalibrierung
 
@@ -55,9 +57,25 @@ Der Coach nutzt ab Level 3 diese Suche und zeigt bis zu zwei ähnlich bewertete 
 
 Die bestehende PWA wird weiter statisch ausgeliefert. Neue Module sind im Entwicklungs-Service-Worker und automatisch im Production-Cache enthalten. Reale Safari-/iPhone-Installation und Offlinebetrieb auf dem Gerät müssen zusätzlich auf dem Zielgerät geprüft werden.
 
-Abschließender Stand: 99 Tests bestanden, keine Fehler oder übersprungenen Tests. Production-Build erfolgreich mit 48 Cache-Dateien. Browserprüfung: Level-1-Tipp, Level-3-Mehrzuglinie, bekannte Augenansicht, Ausblenden bei Training AUS und 320-Pixel-Layout ohne horizontalen Überlauf.
+Stand der ersten Implementierung: 99 Tests bestanden, Production-Build mit 48 Cache-Dateien. Damalige Browserprüfung: Level-1-Tipp, Level-3-Mehrzuglinie, bekannte Augenansicht, Ausblenden bei Training AUS und 320-Pixel-Layout ohne horizontalen Überlauf.
 
-## Alle Dateien dieser Änderung
+## Coach-Überarbeitung: reproduzierbare Positionen
+
+`tests/coachStrategy.test.js` ergänzt strategische Teststellungen und vollständige Partien gegen unveränderte Amateur-Bots. Beispiele, jeweils Pik als Trumpf:
+
+- Angriff mit Karo-König statt Herz-6: Hand Herz-6, Karo-König, Pik-7; Uhu hält bekannt Herz-7, Karo-6 und Kreuz-6.
+- Herz-König verteidigt Herz-6 statt Herz-7: Hand Herz-7, Karo-7, Herz-König, Pik-6. Das Siebenerpaar bleibt zusammen.
+- Herz-Dame verteidigt Herz-6 statt Herz-7: Hand Herz-7, Herz-Dame, Karo-7, Kreuz-7, Pik-6. Drei Siebener bleiben erhalten.
+- Bewusst aufnehmen: Herz-Ass greift an; eigene Hand Pik-Ass, Pik-König, Herz-6, Karo-6, Stapel noch 18 Karten. Beide hohen Trümpfe bleiben erhalten, das aufgenommene Ass ergänzt den Ass-Rang.
+- Endspiellinie: Hand Herz-Bube, Karo-Bube, Kreuz-Bube; Uhu hält vollständig bekannt Herz-6, Karo-6, Kreuz-6; Stapel leer. Einen Buben angreifen und die beiden weiteren Buben nachwerfen leert die eigene Hand. Das bedeutet Ausscheiden am Rundenende, nicht automatisch alleiniger Gesamtsieg.
+
+Eine Folge „7 spielen, nach Aufnahme 9 nachwerfen“ wird ohne 9 auf dem Tisch nicht erfunden. Bei einem Gegner mit nur einer Karte bleibt außerdem die Angriffsgrenze eins. Längere rundenübergreifende Gewinnpläne werden nicht als bewiesen ausgegeben. Die Suche ist eine begrenzte strategische Näherung, kein Nachweis optimaler Spielstärke.
+
+Dateien dieser Coach-Überarbeitung: `src/coach/evaluation.js`, `src/coach/coach.js`, neu `src/coach/planning.js`, neu `tests/coachStrategy.test.js`, `dist/sw.js` (Offline-Aufnahme des neuen Moduls) und dieses Dokument. Engine, Bots, Wissensfilter, Trainingslevel, Replay und Animationen sind unverändert.
+
+Abschlussprüfung dieser Überarbeitung: 113 Tests bestanden, keine Fehler/übersprungenen Tests; Production-Build erfolgreich mit 49 Cache-Dateien. Keine neue Prüfung auf einem physischen iPhone und keine allgemeine Spielstärke-Garantie.
+
+## Dateien der ursprünglichen Bots-/Coach-Erweiterung
 
 Neu:
 

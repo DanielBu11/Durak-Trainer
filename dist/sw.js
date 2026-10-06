@@ -1,4 +1,4 @@
-const VERSION = 'development-v15';
+const VERSION = 'development-v16';
 const PREFIX = `durak-pwa:${self.registration.scope}:`;
 const CACHE = PREFIX + VERSION;
 /* ASSETS_START */
@@ -7,6 +7,7 @@ ASSETS.push(...['beginner','amateur','profi','meister','weights','view','knowled
 ASSETS.push('./src/ui/trainingUI.js',...['trainingLevels','trainingSelectors','trainingState','trainingEvaluation','trainingStats'].map(name=>`./src/training/${name}.js`));
 ASSETS.push('./src/ui/audioUI.js',...['config','manager','events'].map(name=>`./src/audio/${name}.js`));
 ASSETS.push('./src/knowledge/publicGameKnowledge.js','./src/knowledge/trainingKnowledge.js','./src/planning/publicLines.js','./src/coach/knowledge.js','./src/coach/evaluation.js','./src/coach/coach.js','./src/ui/coachUI.js');
+ASSETS.push('./src/coach/planning.js');
 /* ASSETS_END */
 /* AUDIO_START */
 const AUDIO_ASSETS=['card-play','card-defend','card-draw','cards-pickup','discard','shuffle','win','lose'].map(name=>`./assets/audio/sfx/${name}.mp3`).concat('./assets/audio/music/background.mp3');
