@@ -75,7 +75,21 @@ function showMoveFeedback(before,events,action){
 }
 function botStep(){if(state && !moving && !trainingUI.isPaused() && !state.finished && state.actor!==0)move(chooseAction(observation(state),$('difficulty').value));}
 function schedule(){botScheduler.cancel();if(state && !moving && !history?.isPast && !trainingUI.isPaused() && !state.finished && state.actor!==0 && $('speed').value!=='manual')botScheduler.schedule(botStep,Number($('speed').value));}
+// Move the existing controls, preserving their values and event handlers.
+const mobileLayout=window.matchMedia('(max-width:650px)');
+function placeSettings(){
+  const compact=Boolean(state)&&mobileLayout.matches;
+  document.body.classList.toggle('mobile-game',compact);
+  $('settings-trigger').hidden=!compact;
+  const controls=$('game-settings');
+  if(compact){if(controls.parentElement!==$('settings-content'))$('settings-content').append(controls);}
+  else {if($('settings-dialog').open)$('settings-dialog').close();$('settings-home').after(controls);}
+}
+mobileLayout.addEventListener('change',placeSettings);
+$('settings-trigger').onclick=()=>$('settings-dialog').showModal();
+$('close-settings').onclick=()=>$('settings-dialog').close();
 function render(){
+  placeSettings();
   $('setup-view').hidden=Boolean(state);$('game-view').hidden=!state;$('new').hidden=!state;
   $('setup-level').value=trainingUI.getChoice();$('setup-level').disabled=!$('training').checked;
   $('play-tools').hidden=!state||!$('training').checked;
