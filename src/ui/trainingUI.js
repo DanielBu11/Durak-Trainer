@@ -1,11 +1,10 @@
 import {createMemoryUI} from './memoryUI.js';
 import {TRAINING_CHOICES,numericLevel} from './setup.js';
-import {trainingKnowledge} from '../knowledge/trainingKnowledge.js';
 import {SUITS} from '../game/cards.js';
-import {LEVELS, levelDefinition, hasFeature} from '../training/trainingLevels.js';
+import {hasFeature} from '../training/trainingLevels.js';
 import {createTrainingState, configureTraining, observeTraining, toggleWeakness} from '../training/trainingState.js';
 import {createManualCheck,emptyManualAnswer,manualAnswerComplete,evaluateManualCheck} from '../training/manualCheck.js';
-import {loadStats, emptyStats, recordCheck, saveStats, accuracy} from '../training/trainingStats.js';
+import {loadStats, emptyStats, recordCheck, saveStats} from '../training/trainingStats.js';
 
 const suitNames = {'♣':'Kreuz','♦':'Karo','♥':'Herz','♠':'Pik'};
 const cardLabel = c => `${suitNames[c.suit]} ${c.rank}`;
@@ -60,19 +59,10 @@ export function createTrainingUI({root, dialog, onChange}) {
     if (!hasFeature(state.level,'weakness')) return '';
     return `<section class="weakness-section"><h3>Vermutete Farb-Schwäche</h3><p class="note">„Vermutlich schwach oder leer“ ist kein Kartenbeweis: Ein Gegner kann freiwillig Trumpf spielen oder aufnehmen. Diese Markierungen werden nicht als richtig/falsch bewertet.</p><div class="training-opponents">${[1,2].map(id=>`<article><h4>${opponent(id)}</h4><div class="touch-options">${SUITS.map(s=>`<button data-weak-player="${id}" data-weak-suit="${s}" aria-pressed="${Boolean(state.weaknesses[id]?.[s])}">${s} ${suitNames[s]}${state.weaknesses[id]?.[s]?' · vermutet':''}</button>`).join('')}</div></article>`).join('')}</div></section>`;
   }
-  function analysisMarkup() {
-    if (quiz) return '';
-    const a=trainingKnowledge(view,state.level);
-    return `<details class="training-details" data-panel="analysis" ${analysisOpen?'open':''}><summary>Analyse / Kontrolle</summary><p class="note">Level ${state.level}: Nur die freigegebenen Informationen werden angezeigt.</p><div class="analysis-grid"><article><h3>Hohe Trümpfe · raus</h3>${chips(a.discardedCards)}<p>${Object.entries(a.knownTrumpState.facesOut).map(([rank,out])=>rank+': '+(out?'raus':'unbekannt')).join(' · ')}</p>${state.level>=2?'<p>Zahlentrümpfe raus: '+a.knownTrumpState.numberOut+' / 5</p>':''}</article>${state.level>=3?'<article><h3>Bekannte Gegnerkarten</h3>'+[1,2].map(id=>'<h4>'+opponent(id)+'</h4>'+chips(a.knownCardsByPlayer[id])+'<p>Unbekannt: '+Math.max(0,(view.players.find(p=>p.id===id)?.count??0)-a.knownCardsByPlayer[id].length)+'</p>').join('')+'</article>':''}${state.level>=4?'<article><h3>Vermutete Farb-Schwächen</h3>'+a.suspectedSuitWeaknesses.filter(w=>w.player!==0).map(w=>'<p>'+opponent(w.player)+' · '+suitNames[w.suit]+': vermutet</p>').join('')+'</article>':''}</div></details>`;
-  }
-
-  function statsMarkup() {
-    return `<details class="training-details" data-panel="stats" ${statsOpen?'open':''}><summary>Trainingsstatistik · ${stats.correct} / ${stats.checks} richtig</summary><p>Trefferquote ${accuracy(stats)} · Aktuelle Serie ${stats.streak} · Beste Serie ${stats.best}</p><div class="stats-table"><table><thead><tr><th>Level</th><th>Checks</th><th>Richtig</th><th>Quote</th><th>Serie</th><th>Beste</th></tr></thead><tbody>${LEVELS.filter(l=>l.id<=state.level).map(l=>{const s=stats.levels[l.id];return `<tr><th>${l.id}</th><td>${s.checks}</td><td>${s.correct}</td><td>${accuracy(s)}</td><td>${s.streak}</td><td>${s.best}</td></tr>`;}).join('')}</tbody></table></div><p class="note">Checks zählen zum beim Öffnen gewählten Level. Überspringen und Vermutungen zählen nicht. ${storageAvailable?'Nur lokal in diesem Browser gespeichert.':'Speichern ist nicht verfügbar; Statistik gilt nur für diese Sitzung.'}</p></details>`;
-  }
   function render() {
     root.hidden = !state.enabled;
     if (!state.enabled || !view) {root.replaceChildren(); return;}
-    root.innerHTML = memory.markup()+weaknessMarkup()+analysisMarkup()+statsMarkup();
+    root.innerHTML = memory.markup()+weaknessMarkup();
     dialog.querySelector('[data-training-content]').innerHTML=quizMarkup();
     root.querySelectorAll('[data-panel]').forEach(el=>el.ontoggle=()=>{if(el.dataset.panel==='analysis')analysisOpen=el.open;else statsOpen=el.open;});
     [...root.querySelectorAll('button'),...dialog.querySelectorAll('[data-training-content] button')].forEach(button=>button.onclick=()=>{

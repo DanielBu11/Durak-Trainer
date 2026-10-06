@@ -21,8 +21,7 @@ export function createMemoryUI({onChange,storage,set=setTimeout,clear=clearTimeo
   markup(){
    if(!enabled)return '';
    const notice=memory.notices.length&&noticeKey?`<div class="memory-notice" role="status">${memory.notices.map(n=>`<p>Merke bei ${who(n.player)}: <strong>${n.cards.map(label).join(' · ')}</strong></p>`).join('')}</div>`:'';
-   const rows=['3a','3b'].map(m=>{const s=stats[m];return `Level ${m.toUpperCase()}: ${s.correct}/${s.checks} richtig${s.checks?' · '+Math.round(100*s.correct/s.checks)+' %':''} · Uhu ${s.players[1].correct}/${s.players[1].checks} · Aal ${s.players[2].correct}/${s.players[2].checks}`;});
-   return `${notice}<details><summary>Merkkarten-Statistik</summary>${rows.map(r=>`<p>${r}</p>`).join('')}</details>`;
+   return notice;
   },
   record(results){for(const r of results)if(!r.skipped)stats=recordMemoryAnswer(stats,memory.mode,r.player,r.correct);
    try{storage?.setItem('durak.memory.stats.v1',JSON.stringify(stats));}catch{}},
