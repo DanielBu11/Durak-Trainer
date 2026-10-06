@@ -1,6 +1,6 @@
 # Durak · Training Edition
 
-Kleine lokale Web-App ohne Bibliotheken, Installation von Paketen oder Backend. 36 Karten, ein Mensch, zwei Bots. Alle Spielinformationen bleiben im Browser. Ein Neuladen beginnt eine neue Partie.
+Kleine lokale Web-App ohne Bibliotheken, Installation von Paketen oder Backend. 36 Karten, ein Mensch, zwei Bots. Alle Spielinformationen bleiben im Browser. Beim Öffnen oder Neuladen erscheint immer die Setup-Ansicht. Erst **Runde starten** erzeugt und verteilt Karten. **Neue Runde** führt zurück zum Setup; Bot-Stärke, Tempo, Training, Level und Audio bleiben voreingestellt.
 
 ## Audio
 
@@ -120,19 +120,19 @@ Die Engine führt öffentliche `play`, `pickup`, `discard` und `out`-Ereignisse.
 ### Level 1–4 verwenden
 
 1. Oben **Training AN** einschalten und unter der Hand das gewünschte **Trainingslevel** auswählen. Standardmäßig ist Training AUS. Es gibt keine automatischen Quiz-Popups.
-2. **Jetzt prüfen** öffnet auf ausdrücklichen Wunsch einen Check; nach einer abgeschlossenen Runde erscheint zusätzlich ein unaufdringlicher Hinweis. Während eines Checks oder der Merkkartenauswahl pausiert das Spiel. **Überspringen**, **Weiterspielen** oder Training AUS setzt es fort. Überspringen zählt nicht als Fehler.
+2. **Jetzt prüfen** öffnet auf ausdrücklichen Wunsch einen Check; nach einer abgeschlossenen Runde erscheint zusätzlich ein unaufdringlicher Hinweis. Während eines Checks pausiert das Spiel; die kurzen Merkmeldungen unterbrechen den Spielfluss nicht. **Überspringen**, **Weiterspielen** oder Training AUS setzt es fort. Überspringen zählt nicht als Fehler.
 3. **Level 1:** J/Q/K/A wählen, die sicher auf dem Ablagestapel liegen, dann **Prüfen**. Keine Auswahl bedeutet „keiner“.
 4. **Level 2:** Zusätzlich die Zahl 0–5 für die Zahlentrümpfe **6–10** wählen. `3 J Q` bedeutet drei Zahlentrümpfe und J/Q abgelegt. Karten auf dem Tisch oder aufgenommene Karten zählen niemals als raus.
-5. **Level 3:** Nach einer sichtbaren Gegneraufnahme über **Karte merken** genau eine bekannte Karte dieses Gegners auswählen. Empfehlung: Trumpf vor A/K/Q/J, danach übrige Karten. Die Wahl ist frei und ersetzt eine bisherige Merkkarte. **Karte abfragen** prüft Farbe und Rang, ohne die Lösung vorab zu zeigen. Sobald die Karte öffentlich ausgespielt wird, verschwindet sie automatisch aus dem Trainingsspeicher, auch bei vorübergehend ausgeschaltetem Training.
+5. **Level 3A / 3B:** Das Spiel wählt automatisch höchstens eine bzw. zwei relevante bekannte Karten pro Gegner. Es zeigt neue Merkkarten 1,9 Sekunden lang. Erst nach weiteren 2–4 öffentlichen Spielaktionen folgt eine überspringbare Frage mit vier Antwortmöglichkeiten. 3B fragt jeweils eine Karte; die zweite aktive Merkkarte wird nicht als falsche Antwort angeboten. Rückmeldung dauert 1,3 Sekunden, dann geht das Spiel weiter.
 6. **Level 4:** Pro Gegner Farben als **vermutlich schwach oder leer** markieren. Erneutes Antippen entfernt eine Markierung. Gelbe Vermutungen sind keine sicheren Karteninformationen; sie werden nicht automatisch als bewiesen behandelt oder bewertet. Frühere Level bleiben verfügbar.
 
-**Analyse / Kontrolle**, Stapelübersicht und Augen folgen dem Trainingslevel. Level 1 zeigt hohe Trümpfe, Level 2 zusätzlich die Zahl 0–5, Level 3 bekannte Gegnerkarten und Level 4 vermutete Farb-Schwächen. Die Augen zeigen ab Level 3 nur bekannte Aufnahmekarten und die unbekannte Kartenanzahl für acht Sekunden; echte verdeckte Hände werden nie angezeigt. Während einer offenen Quizfrage werden Aufdeckfunktionen gesperrt; vorherige Aufdeckungen werden geschlossen.
+**Analyse / Kontrolle** und Augen folgen dem Trainingslevel. Die Stapelübersicht zeigt bei Training AN unabhängig vom Level alle tatsächlich abgelegten Karten. Level 1 zeigt hohe Trümpfe, Level 2 zusätzlich die Zahl 0–5, Level 3 bekannte Gegnerkarten und Level 4 vermutete Farb-Schwächen. Die Augen zeigen ab Level 3 nur bekannte Aufnahmekarten und die unbekannte Kartenanzahl für acht Sekunden; echte verdeckte Hände werden nie angezeigt. Während einer Merkkartenfrage ist das Auge des betroffenen Gegners gesperrt. Analyse und Stapelkontrolle pausieren während Checks; vorherige Aufdeckungen werden geschlossen.
 
 ### Statistik und Trennung
 
 `trainingStats.js` speichert ausschließlich Statistik unter `durak.training.stats.v1` in `localStorage`: Anzahl Checks, richtige Antworten, Trefferquote und aktuelle/beste Serie global sowie je Level. Ein Check zählt zum beim Öffnen gewählten Level, auch wenn er eine Fähigkeit aus einem früheren Level übt. Vermutungen und übersprungene Fragen zählen nicht. Mehrfaches Prüfen derselben Frage wird verhindert. Bei gesperrtem Speicher bleibt die Statistik für die Sitzung nutzbar; fehlerhafte gespeicherte Daten werden verworfen.
 
-Quizantworten, Merkkarten und Vermutungen gehören nie zum Engine-Zustand und werden nie an Bots übergeben. `trainingUI.js` bekommt nur `observation(state, 0)`. Die Augen verwenden ausschließlich die levelgefilterte öffentliche Wissensbasis; verdeckte Karten fließen weder in Anzeige, Quizlösungen noch Trainings- oder Bot-Selektoren. Nur die Statistik überlebt einen Neustart; Spielstand, Merkkarten, Vermutungen und Level-Auswahl sind sitzungsbezogen. Ein neues Spiel löscht die Merkkarten/Vermutungen, erhält aber gewähltes Level und Statistik.
+Quizantworten, Merkkarten und Vermutungen gehören nie zum Engine-Zustand und werden nie an Bots übergeben. `trainingUI.js` bekommt nur `observation(state, 0)`. Die Augen verwenden ausschließlich die levelgefilterte öffentliche Wissensbasis; verdeckte Karten fließen weder in Anzeige, Quizlösungen noch Trainings- oder Bot-Selektoren. Statistiken und globale Einstellungen einschließlich Level-Auswahl überleben einen Neustart; Spielstand, Merkkarten und Vermutungen sind sitzungsbezogen. Ein neues Spiel löscht die Merkkarten/Vermutungen, erhält aber gewähltes Level und Statistik.
 
 ### Später Level 5–7 ergänzen
 
@@ -195,3 +195,11 @@ git push -u origin main
 ```
 
 Referenz: https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages
+
+## Automatische Merkkarten und Setup
+
+`src/training/automaticMemory.js` liest nur öffentliche Aufnahme-/Ausspielereignisse und Kartenanzahlen. Trümpfe erhalten 100 Punkte plus 8 pro Rangstufe, Farbkarten nur Rangpunkte. Nicht-Trümpfe unter 10 werden zunächst ausgelassen. Bestehende Merkkarten bleiben, bis sie ausgespielt werden oder eine neue Karte mindestens 16 Punkte wichtiger ist. 3A hat Kapazität 1, 3B Kapazität 2, zusätzlich begrenzt durch bekannte Karten und öffentliche Handanzahl. Level 4 übernimmt 3A mit seinen bisherigen Farb-Schwächen.
+
+`src/ui/memoryUI.js` steuert kurze Hinweise, verzögerte Fragen, Feedback und abbrechbare Timer. Neue Fragen warten auch nach einer beantworteten oder übersprungenen Frage erneut einige Aktionen. Bei Training AUS, Levelwechsel, Spielende und neuer Partie wird abgebrochen. Replay speichert Merkkarten mit; alte Timer werden verworfen. Statistik nach 3A/3B und Uhu/Aal liegt unter `durak.memory.stats.v1` lokal im Browser.
+
+`src/ui/setup.js` speichert ausschließlich Einstellungen unter `durak.game.settings.v1`. Ohne expliziten Start existieren weder Runde noch Bot-Aufträge. 3A/3B sind zwei Varianten derselben Wissensstufe 3; der Coach und die übrigen Level-Grenzen ändern sich dadurch nicht.

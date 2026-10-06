@@ -1,12 +1,13 @@
+import {createSession,loadPreferences,savePreferences,TRAINING_CHOICES} from './setup.js';
 import {recommendMove} from '../coach/coach.js';
 import {renderCoachUI} from './coachUI.js';
 import {knownHandView} from '../knowledge/trainingKnowledge.js';
 import {collectionFeedback, createEventFeedback} from './eventFeedback.js';
 import {startFreshRound, roundResult, createResultGate, canInspectStock} from './roundLifecycle.js';
-import {createHistory, createBotScheduler} from './history.js';
+import {createBotScheduler} from './history.js';
 import {captureMotion, animateMove, cancelMotion, motionFinished, pulseStock} from './motion.js';
 import {card, suitName, stockDisplay, renderDiscardOverview} from './cards.js';
-import {createGame, act, legalActions, observation} from '../game/engine.js';
+import {act, legalActions, observation} from '../game/engine.js';
 import {chooseAction} from '../bots/strategy.js';
 import {createTrainingUI} from './trainingUI.js';
 import {setupAudio} from './audioUI.js';
@@ -16,17 +17,21 @@ const botAvatars={1:'🦉',2:'🐟'};
 const $=id=>document.getElementById(id);
 const audio=setupAudio($('audio-settings'));
 const eventFeedback=createEventFeedback($('event-feedback'));
-let state=createGame(), selected=null, history, moving=false, motionEpoch=0;
+let state=null, selected=null, history=null, moving=false, motionEpoch=0;
+let preferencesStorage;try{preferencesStorage=window.localStorage;}catch{}
+const preferences=loadPreferences(preferencesStorage);
+const session=createSession(startFreshRound);
+function persist(){savePreferences(preferencesStorage,{difficulty:$('difficulty').value,speed:$('speed').value,training:$('training').checked,level:trainingUI.getChoice()});}
 const botScheduler=createBotScheduler();
 const resultGate=createResultGate();
 let coachAdvice=null,coachStamp=null;
 const revealed=new Set(), revealTimers=new Map();
 function clearReveals(){revealed.clear();for(const t of revealTimers.values())clearTimeout(t);revealTimers.clear();}
 function revealHand(id){clearTimeout(revealTimers.get(id));if(revealed.has(id))revealed.delete(id);else{revealed.add(id);revealTimers.set(id,setTimeout(()=>{revealed.delete(id);render();},8000));}render();}
-const trainingUI=createTrainingUI({root:$('training-panel'),onChange:()=>{if(trainingUI.isPaused())clearReveals();render();}});
+const trainingUI=createTrainingUI({root:$('training-panel'),onChange:()=>{if(trainingUI.isPaused())clearReveals();persist();render();}});
 function snapshot(){return {game:state,training:trainingUI.snapshot(),difficulty:$('difficulty').value};}
 function move(action){
-  if(trainingUI.isPaused()||moving)return;
+  if(!state||trainingUI.isPaused()||moving)return;
   try{
     const before=state, visual=captureMotion(state.actor), next=act(state,action);
     if(history.isPast)resultGate.reset();
@@ -44,6 +49,7 @@ function move(action){
   }catch(error){$('status').textContent=error.message;}
 }
 function navigateHistory(index){
+  if(!state||!history)return;trainingUI.suspendMemory();
   botScheduler.cancel();motionEpoch++;cancelMotion();eventFeedback.cancel();moving=false;clearReveals();selected=null;
   clearTimeout(feedbackTimer);$('move-feedback').textContent='';
   history.replace(snapshot());const saved=history.go(index);state=saved.game;
@@ -67,16 +73,21 @@ function showMoveFeedback(before,events,action){
   $('move-feedback').textContent=pickup||events.some(e=>e.type==='discard')?'':action.type==='take'?says(before.actor,'nimmt auf'):action.type==='attack'?says(before.actor,'greift an'):action.type==='defend'?says(before.actor,'verteidigt'):'';
   clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{$('move-feedback').textContent='';},1800);
 }
-function botStep(){if(!moving && !trainingUI.isPaused() && !state.finished && state.actor!==0)move(chooseAction(observation(state),$('difficulty').value));}
-function schedule(){botScheduler.cancel();if(!moving && !history?.isPast && !trainingUI.isPaused() && !state.finished && state.actor!==0 && $('speed').value!=='manual')botScheduler.schedule(botStep,Number($('speed').value));}
+function botStep(){if(state && !moving && !trainingUI.isPaused() && !state.finished && state.actor!==0)move(chooseAction(observation(state),$('difficulty').value));}
+function schedule(){botScheduler.cancel();if(state && !moving && !history?.isPast && !trainingUI.isPaused() && !state.finished && state.actor!==0 && $('speed').value!=='manual')botScheduler.schedule(botStep,Number($('speed').value));}
 function render(){
+  $('setup-view').hidden=Boolean(state);$('game-view').hidden=!state;$('new').hidden=!state;
+  $('setup-level').value=trainingUI.getChoice();$('setup-level').disabled=!$('training').checked;
+  if(!state){botScheduler.cancel();return;}
+  trainingUI.update(observation(state,0),{ready:!moving&&!history?.isPast});
+  const blocked=trainingUI.blockedPlayer();if(blocked)revealed.delete(blocked);
   const actions=legalActions(state), paused=trainingUI.isPaused(), human=state.actor===0&&!state.finished&&!paused&&!moving, training=$('training').checked;
   const publicState=observation(state,0),level=trainingUI.getLevel();
   $('round').textContent=`Runde ${state.round}`;
   for(const id of [1,2]) {
     const p={...publicState.players[id],name:state.players[id].name}, root=$(`bot${id}`);root.className=`opponent ${state.actor===id&&!state.finished&&!paused?'active-player':''}`;
     root.innerHTML=`<div class="opponent-header"><span class="avatar" aria-hidden="true">${botAvatars[id]}</span><div><h2>${p.name}<span class="turn-tag">${state.actor===id&&!state.finished&&!paused?'am Zug':''}</span></h2><small>${p.out?'Fertig':`${p.count} Karten · ${state.defender===id?'Verteidigung':state.attacker===id?'Angriff':'Nachwerfen'}`}</small></div></div>`;
-    if(training&&level>=3){const eye=document.createElement('button');eye.className='eye';eye.textContent='👁';eye.disabled=paused;eye.setAttribute('aria-label',`${p.name}: bekannte Karten ${revealed.has(id)?'verbergen':'8 Sekunden anzeigen'}`);eye.setAttribute('aria-pressed',String(revealed.has(id)));eye.onclick=()=>revealHand(id);root.firstChild.insertBefore(eye,root.firstChild.children[1]);}
+    if(training&&level>=3){const eye=document.createElement('button');eye.className='eye';eye.textContent='👁';eye.disabled=paused&&(!blocked||blocked===id);eye.setAttribute('aria-label',`${p.name}: bekannte Karten ${revealed.has(id)?'verbergen':'8 Sekunden anzeigen'}`);eye.setAttribute('aria-pressed',String(revealed.has(id)));eye.onclick=()=>revealHand(id);root.firstChild.insertBefore(eye,root.firstChild.children[1]);}
     const cards=document.createElement('div');cards.className=training&&level>=3&&revealed.has(id)?'revealed':'backs';
     if(training&&level>=3&&revealed.has(id)){const known=knownHandView(publicState,id,{enabled:training,level});const label=document.createElement('small');label.className='known-hand-label';label.textContent='Bekannt';cards.append(label);known.cards.forEach(c=>cards.append(card(c)));const unknown=document.createElement('small');unknown.className='known-hand-label';unknown.textContent='Unbekannt: '+known.unknown;cards.append(unknown);}else for(let i=0;i<Math.min(8,p.count);i++){const back=document.createElement('span');back.className='back';back.setAttribute('aria-hidden','true');cards.append(back);}root.append(cards);
   }
@@ -98,7 +109,6 @@ function render(){
   $('hint').textContent=state.finished?'Eine neue Partie wartet auf dich.':state.taking?`${state.defender===0?'Du nimmst':state.players[state.defender].name+' nimmt'} auf. Passende Werte dürfen noch dazu.`:human?(state.phase==='defend'?'Klicke eine höhere Karte derselben Farbe oder einen Trumpf.':state.table.length?'Wirf einen passenden Wert nach oder beende deinen Angriff.':'Wähle eine Karte, um den Angriff zu eröffnen.'):state.players[0].out?'Du bist fertig. Die Bots spielen die Partie zu Ende.':'Beobachte die Karten und plane deinen nächsten Zug.';
   $('take').disabled=!human||!actions.some(a=>a.type==='take');$('pass').disabled=!human||!actions.some(a=>a.type==='pass');$('step').hidden=$('speed').value!=='manual'||history?.isPast;$('step').disabled=state.finished||state.actor===0||paused||moving;
   if(paused){$('status').textContent='Training · Spiel pausiert';$('hint').textContent='Prüfe deine Antwort oder überspringe den Check, um weiterzuspielen.';}
-  trainingUI.update(observation(state,0));
   const stamp=JSON.stringify([state.events.length,state.actor,state.phase,history?.index,history?.length,level,training,level>=4?trainingUI.getWeaknesses():null]);
   if(coachStamp!==stamp){coachAdvice=null;coachStamp=stamp;}
   renderCoachUI($('coach-panel'),{enabled:training,level,ready:human&&!paused,advice:coachAdvice,onRequest:()=>{
@@ -106,18 +116,20 @@ function render(){
   }});
   if(history)renderHistory();schedule();showResult();
 }
-$('stock').onclick=()=>{if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();};
+$('stock').onclick=()=>{if(!state)return;if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();};
 $('close-discard').onclick=()=>$('discard-dialog').close();
 $('discard-dialog').onclick=e=>{if(e.target===$('discard-dialog'))$('discard-dialog').close();};
 $('take').onclick=()=>move({type:'take'});$('pass').onclick=()=>move({type:'pass'});$('step').onclick=botStep;
 function cancelRoundWork(){
+  trainingUI.cancelMemory();
   coachAdvice=null;coachStamp=null;
   botScheduler.cancel();motionEpoch++;moving=false;
   cancelMotion();eventFeedback.cancel();clearReveals();selected=null;
   clearTimeout(feedbackTimer);$('move-feedback').textContent='';
 }
 function newRound(){
-  const fresh=startFreshRound({cancelPending:cancelRoundWork,
+  if(state)return;persist();
+  const fresh=session.start({cancelPending:cancelRoundWork,
     closeOverlays:()=>{for(const id of ['result-dialog','discard-dialog'])if($(id).open)$(id).close();},
     training:trainingUI,difficulty:$('difficulty').value});
   state=fresh.game;history=fresh.history;resultGate.reset();
@@ -133,11 +145,19 @@ function showResult(){
   if($('discard-dialog').open)$('discard-dialog').close();
   $('result-dialog').showModal();
 }
-$('new').onclick=newRound;$('result-new').onclick=newRound;
+function returnToSetup(){
+  cancelRoundWork();session.setup();state=null;history=null;resultGate.reset();
+  for(const id of ['result-dialog','discard-dialog'])if($(id).open)$(id).close();
+  persist();render();$('start-round').focus();
+}
+$('new').onclick=returnToSetup;$('result-new').onclick=returnToSetup;$('start-round').onclick=newRound;
 $('result-review').onclick=()=>{if(!$('training').checked)return;$('result-dialog').close();$('history-back').focus();};
 $('result-dialog').addEventListener('cancel',event=>event.preventDefault());
-$('training').onchange=()=>{clearReveals();trainingUI.setEnabled($('training').checked);};$('speed').onchange=scheduleAndRender;function scheduleAndRender(){render();}$('difficulty').onchange=schedule;
-trainingUI.update(observation(state,0));history=createHistory(snapshot());
+$('training').onchange=()=>{clearReveals();trainingUI.setEnabled($('training').checked);};$('speed').onchange=scheduleAndRender;function scheduleAndRender(){persist();render();}$('difficulty').onchange=()=>{persist();schedule();};
+$('difficulty').value=preferences.difficulty;$('speed').value=preferences.speed;$('training').checked=preferences.training;
+$('setup-level').innerHTML=TRAINING_CHOICES.map(([id,title])=>'<option value="'+id+'">'+title+'</option>').join('');
+trainingUI.setChoice(preferences.level,false);trainingUI.setEnabled(preferences.training);
+$('setup-level').onchange=()=>trainingUI.setChoice($('setup-level').value);
 $('history-back').onclick=()=>navigateHistory(history.index-1);$('history-forward').onclick=()=>navigateHistory(history.index+1);
 $('history-start').onclick=()=>navigateHistory(0);$('history-latest').onclick=()=>navigateHistory(history.length-1);
 render();

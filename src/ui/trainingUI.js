@@ -1,7 +1,9 @@
+import {createMemoryUI} from './memoryUI.js';
+import {TRAINING_CHOICES,numericLevel} from './setup.js';
 import {trainingKnowledge} from '../knowledge/trainingKnowledge.js';
 import {SUITS, RANKS} from '../game/cards.js';
 import {LEVELS, levelDefinition, hasFeature} from '../training/trainingLevels.js';
-import {createTrainingState, configureTraining, observeTraining, rememberCard, forgetCard, toggleWeakness} from '../training/trainingState.js';
+import {createTrainingState, configureTraining, observeTraining, toggleWeakness} from '../training/trainingState.js';
 import {selectTrainingFacts, memoryCandidates} from '../training/trainingSelectors.js';
 import {createCheck, evaluateCheck} from '../training/trainingEvaluation.js';
 import {loadStats, emptyStats, recordCheck, saveStats, accuracy} from '../training/trainingStats.js';
@@ -17,7 +19,10 @@ export function createTrainingUI({root, onChange}) {
   let analysisOpen = false, statsOpen = false, storage, storageAvailable = true;
   try {storage = window.localStorage;} catch {storageAvailable = false;}
   let stats = storage ? loadStats(storage) : emptyStats();
-  const paused = () => state.enabled && Boolean(quiz || picking !== null);
+  let choice='1';
+  const memory=createMemoryUI({onChange,storage});
+  const paused = () => state.enabled && Boolean(quiz || memory.paused);
+  const setChoice=(value,notify=true)=>{choice=TRAINING_CHOICES.some(([id])=>id===value)?value:'1';state=configureTraining(state,{level:numericLevel(choice)});quiz=null;result=null;picking=null;analysisOpen=false;memory.reset();if(notify)redraw();};
   function redraw() {onChange();}
   function closeCheck() {quiz = null; result = null; picking = null; state = {...state, completedRound:null}; redraw();}
   function begin(kind = 'trumps', player = null) {
@@ -52,24 +57,12 @@ export function createTrainingUI({root, onChange}) {
     }
     return `<section class="quiz-box" tabindex="-1" aria-label="Trainingscheck"><h3>Level ${quiz.level} · ${memory?'Gemerkte Karte':'Trumpf-Check'}</h3><p class="note">Spiel pausiert. ${memory?'':'Nur abgelegte Karten zählen als raus. Aufgenommene Karten bleiben im Spiel.'}</p>${body}</section>`;
   }
-  function memoryMarkup() {
-    if (!hasFeature(state.level,'memory')) return '';
-    return `<section class="memory-section"><h3>Bekannte Karte · eine pro Gegner</h3><p class="note">Wähle aus sichtbar aufgenommenen Karten. Die gemerkte Karte bleibt verborgen, bis du sie abfragst oder kontrollierst. Beim Ausspielen wird sie automatisch vergessen.</p><div class="training-opponents">${[1,2].map(id=>{
-      const candidates=memoryCandidates(view,id), saved=state.remembered[id];
-      return `<article><h4>${opponent(id)}</h4><p>${saved?'Eine Karte gemerkt ✓':'Noch keine Karte gemerkt.'}</p><div class="training-actions"><button data-pick="${id}" ${!candidates.length||quiz?'disabled':''}>${saved?'Karte wechseln':'Karte merken'}</button><button data-recall="${id}" ${!saved||quiz||picking!==null?'disabled':''}>Karte abfragen</button>${saved?`<button class="quiet" data-forget="${id}" ${quiz?'disabled':''}>Vergessen</button>`:''}</div>${!candidates.length?'<p class="note">Noch keine sichtbar aufgenommene Karte auf dieser Hand.</p>':''}</article>`;
-    }).join('')}</div></section>`;
-  }
-  function pickerMarkup() {
-    if (picking === null) return '';
-    const cards=memoryCandidates(view,picking);
-    return `<section class="quiz-box" tabindex="-1" aria-label="Karte merken"><h3>${opponent(picking)} · eine Karte auswählen</h3><p>Spiel pausiert. Empfehlung: zuerst Trumpf, dann A, K, Q, J, übrige Karten. Deine Wahl ersetzt die bisher gemerkte Karte.</p><div class="touch-options">${cards.map((c,i)=>`<button data-remember="${c.id}">${cardLabel(c)}${i===0?' · empfohlen':''}</button>`).join('')}</div><button class="quiet" data-action="close">Abbrechen / weiterspielen</button></section>`;
-  }
   function weaknessMarkup() {
     if (!hasFeature(state.level,'weakness')) return '';
     return `<section class="weakness-section"><h3>Vermutete Farb-Schwäche</h3><p class="note">„Vermutlich schwach oder leer“ ist kein Kartenbeweis: Ein Gegner kann freiwillig Trumpf spielen oder aufnehmen. Diese Markierungen werden nicht als richtig/falsch bewertet.</p><div class="training-opponents">${[1,2].map(id=>`<article><h4>${opponent(id)}</h4><div class="touch-options">${SUITS.map(s=>`<button data-weak-player="${id}" data-weak-suit="${s}" aria-pressed="${Boolean(state.weaknesses[id]?.[s])}">${s} ${suitNames[s]}${state.weaknesses[id]?.[s]?' · vermutet':''}</button>`).join('')}</div></article>`).join('')}</div></section>`;
   }
   function analysisMarkup() {
-    if (quiz || picking !== null) return '';
+    if (quiz || memory.paused) return '';
     const a=trainingKnowledge(view,state.level);
     return `<details class="training-details" data-panel="analysis" ${analysisOpen?'open':''}><summary>Analyse / Kontrolle</summary><p class="note">Level ${state.level}: Nur die freigegebenen Informationen werden angezeigt.</p><div class="analysis-grid"><article><h3>Hohe Trümpfe · raus</h3>${chips(a.discardedCards)}<p>${Object.entries(a.knownTrumpState.facesOut).map(([rank,out])=>rank+': '+(out?'raus':'unbekannt')).join(' · ')}</p>${state.level>=2?'<p>Zahlentrümpfe raus: '+a.knownTrumpState.numberOut+' / 5</p>':''}</article>${state.level>=3?'<article><h3>Bekannte Gegnerkarten</h3>'+[1,2].map(id=>'<h4>'+opponent(id)+'</h4>'+chips(a.knownCardsByPlayer[id])+'<p>Unbekannt: '+Math.max(0,(view.players.find(p=>p.id===id)?.count??0)-a.knownCardsByPlayer[id].length)+'</p>').join('')+'</article>':''}${state.level>=4?'<article><h3>Vermutete Farb-Schwächen</h3>'+a.suspectedSuitWeaknesses.filter(w=>w.player!==0).map(w=>'<p>'+opponent(w.player)+' · '+suitNames[w.suit]+': vermutet</p>').join('')+'</article>':''}</div></details>`;
   }
@@ -80,8 +73,8 @@ export function createTrainingUI({root, onChange}) {
   function render() {
     root.hidden = !state.enabled;
     if (!state.enabled || !view) {root.replaceChildren(); return;}
-    root.innerHTML = `<div class="training-heading"><label>Trainingslevel <select id="training-level" ${paused()?'disabled':''}>${LEVELS.map(l=>`<option value="${l.id}" ${state.level===l.id?'selected':''}>Level ${l.id} · ${l.title}</option>`).join('')}</select></label><button data-action="begin" ${paused()?'disabled':''}>Jetzt prüfen</button></div><p>${levelDefinition(state.level).description}</p>${state.completedRound&&!paused()?`<p class="training-notice" role="status">Runde ${state.completedRound} abgeschlossen. Ein freiwilliger Check ist bereit.</p>`:''}${quizMarkup()}${pickerMarkup()}${memoryMarkup()}${weaknessMarkup()}${analysisMarkup()}${statsMarkup()}`;
-    root.querySelector('#training-level').onchange = event => {state=configureTraining(state,{level:Number(event.target.value)});redraw();};
+    root.innerHTML = `<div class="training-heading"><label>Trainingslevel <select id="training-level" >${TRAINING_CHOICES.map(([id,title])=>`<option value="${id}" ${choice===id?'selected':''}>${title}</option>`).join('')}</select></label><button data-action="begin" ${paused()?'disabled':''}>Jetzt prüfen</button></div><p>${levelDefinition(state.level).description}</p>${state.completedRound&&!paused()?`<p class="training-notice" role="status">Runde ${state.completedRound} abgeschlossen. Ein freiwilliger Check ist bereit.</p>`:''}${quizMarkup()}${memory.markup()}${weaknessMarkup()}${analysisMarkup()}${statsMarkup()}`;
+    root.querySelector('#training-level').onchange = event => {setChoice(event.target.value);};
     root.querySelectorAll('[data-panel]').forEach(el=>el.ontoggle=()=>{if(el.dataset.panel==='analysis')analysisOpen=el.open;else statsOpen=el.open;});
     root.querySelectorAll('button').forEach(button=>button.onclick=()=>{
       const d=button.dataset;
@@ -92,23 +85,25 @@ export function createTrainingUI({root, onChange}) {
       if(d.face){answer.faces=answer.faces.includes(d.face)?answer.faces.filter(r=>r!==d.face):[...answer.faces,d.face];render();}
       if(d.suit){answer.suit=d.suit;render();}
       if(d.rank){answer.rank=d.rank;render();}
-      if(d.pick){picking=Number(d.pick);analysisOpen=false;redraw();root.querySelector('[aria-label="Karte merken"]')?.focus();}
-      if(d.remember){state=rememberCard(state,view,picking,d.remember);picking=null;redraw();}
-      if(d.recall)begin('memory',Number(d.recall));
-      if(d.forget){state=forgetCard(state,Number(d.forget));redraw();}
       if(d.weakPlayer){state=toggleWeakness(state,Number(d.weakPlayer),d.weakSuit);redraw();}
 
     });
+    memory.bind(root);
   }
   return {
     // Restore without replaying events or scoring a question a second time.
-    snapshot(){return structuredClone({state,quiz,answer,result,picking,analysisOpen,statsOpen,stats});},
-    restore(saved,publicView){({state,quiz,answer,result,picking,analysisOpen,statsOpen,stats}=structuredClone(saved));view=publicView;if(storage)saveStats(storage,stats);render();},
+    snapshot(){return structuredClone({state,quiz,answer,result,picking,analysisOpen,statsOpen,stats,choice,memory:memory.snapshot()});},
+    restore(saved,publicView){({state,quiz,answer,result,picking,analysisOpen,statsOpen,stats}=structuredClone(saved));choice=saved.choice??String(state.level);memory.restore(saved.memory);view=publicView;if(storage)saveStats(storage,stats);render();},
     getLevel:()=>state.level,
+    getChoice:()=>choice,
+    setChoice,
+    blockedPlayer:()=>memory.blockedPlayer(),
+    cancelMemory:()=>memory.reset(),
+    suspendMemory:()=>memory.suspend(),
     getWeaknesses:()=>structuredClone(state.weaknesses),
     isPaused: paused,
-    update(publicView) {view=publicView;state=observeTraining(state,view);render();},
-    setEnabled(enabled) {state={...configureTraining(state,{enabled}),completedRound:null};quiz=null;picking=null;result=null;analysisOpen=false;redraw();},
-    reset(publicView) {state={...createTrainingState(),enabled:state.enabled,level:state.level};quiz=null;answer=null;picking=null;result=null;analysisOpen=false;view=publicView;render();},
+    update(publicView,{ready=true}={}) {view=publicView;state=observeTraining(state,view);memory.update(view,{enabled:state.enabled&&hasFeature(state.level,'memory'),mode:choice==='3b'?'3b':'3a',ready:ready&&!quiz});render();},
+    setEnabled(enabled) {memory.reset();state={...configureTraining(state,{enabled}),completedRound:null};quiz=null;picking=null;result=null;analysisOpen=false;redraw();},
+    reset(publicView) {memory.reset();state={...createTrainingState(),enabled:state.enabled,level:state.level};quiz=null;answer=null;picking=null;result=null;analysisOpen=false;view=publicView;render();},
   };
 }
