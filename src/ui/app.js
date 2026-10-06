@@ -117,11 +117,11 @@ function render(){
   const stock=stockDisplay(state);$('stock').classList.toggle('is-empty',!stock.count);$('stock').replaceChildren();
   if(stock.card)$('stock').append(card(stock.card));else{const empty=document.createElement('span');empty.className='empty-stock';empty.textContent='Leer';$('stock').append(empty);}
   if(stock.count>1){const back=document.createElement('span');back.className='back';back.innerHTML='<span class=stock-count>'+stock.count+'</span>';$('stock').append(back);}
-  const label=document.createElement('small');label.textContent=stock.label+(stock.count===1?' · 1':'');$('stock').append(label);
+  const label=document.createElement('small');label.className='trump-symbol';label.textContent=state.trump;label.setAttribute('aria-label','Trumpf: '+suitName[state.trump]);$('stock').append(label);
   $('stock').disabled=!canInspectStock(training,paused);
   $('stock').setAttribute('aria-label',training?'Welche Karten sind aus dem Spiel?':'Nachziehstapel · Trumpf '+state.trump);
   if(!training&&$('discard-dialog').open)$('discard-dialog').close();
-  if($('discard-dialog').open)renderDiscardOverview($('discard-overview'),state.discarded);
+  if($('discard-dialog').open)renderDiscardOverview($('discard-overview'),state.discarded,state.trump);
   $('limit').textContent=`${state.table.length} / ${state.limit}`;
   $('table').replaceChildren();if(!state.table.length)$('table').innerHTML='<div class="empty-table">Die nächste Karte eröffnet die Runde.</div>';
   state.table.forEach((pair,target)=>{const el=document.createElement('div');el.className='pair'+(pair.defense?' covered':'');const a=card(pair.attack,human&&state.phase==='defend'&&!pair.defense);if(a.tagName==='BUTTON'){a.disabled=!actions.some(x=>x.type==='defend'&&x.target===target&&(!selected||x.card===selected));a.setAttribute('aria-label',`${suitName[pair.attack.suit]} ${pair.attack.rank} decken`);a.onclick=()=>{if(selected)move({type:'defend',card:selected,target});else{$('hint').textContent='Wähle zuerst eine passende Karte aus deiner Hand.';}};}el.append(a);if(pair.defense){const d=card(pair.defense);d.classList.add('defense');el.append(d);}else if(selected)el.classList.add('target');$('table').append(el);});
@@ -144,7 +144,7 @@ $('coach-trigger').onclick=()=>{
   render();$('coach-dialog').showModal();
 };
 $('close-coach').onclick=()=>$('coach-dialog').close();
-$('stock').onclick=()=>{if(!state)return;if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();botScheduler.cancel();render();};
+$('stock').onclick=()=>{if(!state)return;if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded,state.trump);$('discard-dialog').showModal();botScheduler.cancel();render();};
 $('discard-dialog').addEventListener('close',()=>render());
 $('close-discard').onclick=()=>$('discard-dialog').close();
 $('discard-dialog').onclick=e=>{if(e.target===$('discard-dialog'))$('discard-dialog').close();};

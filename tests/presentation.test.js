@@ -29,7 +29,7 @@ test('stock overview renders every discarded suit and rank identically through l
  const discarded=['♣6','♦8','♥J','♠A'].map(c),root={innerHTML:''};
  const app=await readFile(new URL('../src/ui/app.js',import.meta.url),'utf8');
  // Both initial opening and refresh must use the complete discard pile.
- const calls=app.match(/renderDiscardOverview\(\$\('discard-overview'\),state\.discarded\)/g);
+ const calls=app.match(/renderDiscardOverview\(\$\('discard-overview'\),state\.discarded,state\.trump\)/g);
  assert.equal(calls.length,2);assert.ok(!app.includes('renderTrainingOverview'));
  let expected;
  for(const level of [1,2,3,4,1,4,2]){
@@ -62,4 +62,8 @@ test('training off still blocks stock inspection and closes an open overview',as
  const app=await readFile(new URL('../src/ui/app.js',import.meta.url),'utf8');
  assert.ok(app.includes("if(!training&&$('discard-dialog').open)$('discard-dialog').close()"));
  assert.ok(app.includes("if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;"));
+});
+
+test('overview identifies only the current trump suit',()=>{
+ const root={innerHTML:''};for(const trump of ['♠','♥','♦','♣']){renderDiscardOverview(root,[],trump);assert.equal((root.innerHTML.match(/\(Trumpf\)/g)??[]).length,1);assert.ok(root.innerHTML.includes('<h3>'+trump+' (Trumpf)'));}
 });
