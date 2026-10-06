@@ -65,5 +65,5 @@ test('training off still blocks stock inspection and closes an open overview',as
 });
 
 test('overview identifies only the current trump suit',()=>{
- const root={innerHTML:''};for(const trump of ['♠','♥','♦','♣']){renderDiscardOverview(root,[],trump);assert.equal((root.innerHTML.match(/\(Trumpf\)/g)??[]).length,1);assert.ok(root.innerHTML.includes('<h3>'+trump+' (Trumpf)'));}
+ const root={innerHTML:''};for(const trump of ['♠','♥','♦','♣']){renderDiscardOverview(root,[],trump);assert.equal((root.innerHTML.match(/\(Trumpf\)/g)??[]).length,1);assert.ok(root.innerHTML.includes('<h3>'+trump+' '+({'♠':'Pik','♥':'Herz','♦':'Karo','♣':'Kreuz'}[trump])+' (Trumpf)</h3>'));}
 });
