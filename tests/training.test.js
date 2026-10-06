@@ -31,7 +31,7 @@ test('level gating is cumulative and unavailable levels cannot be selected',()=>
   assert.ok(hasFeature(1,'faces'));assert.ok(!hasFeature(1,'numbers'));
   assert.ok(hasFeature(2,'numbers'));assert.ok(!hasFeature(2,'memory'));
   assert.ok(hasFeature(3,'memory'));assert.ok(!hasFeature(3,'weakness'));
-  assert.ok(hasFeature(4,'weakness'));assert.equal(enabled(7).level,1);
+  assert.ok(!hasFeature(4,'weakness'));assert.ok(hasFeature(4,'memory'));assert.equal(enabled(7).level,1);
 });
 test('recommendations prioritize trump, A, K, Q, J, then numbers',()=>{
   const v=publicView({events:[{type:'pickup',player:1,cards:['♥6','♥J','♥Q','♥K','♥A','♠6'].map(c)}]});
@@ -50,10 +50,9 @@ test('remembered card expires as soon as played, even when training is off',()=>
   v.events.push({type:'play',player:1,round:2,card:c('♥A')});s=observeTraining(s,v);
   assert.deepEqual(s.remembered,{});assert.deepEqual(memoryCandidates(v,1),[]);
 });
-test('level 4 markers are only suspicions; no scoring or card facts',()=>{
-  let s=toggleWeakness(enabled(4),2,'♥');assert.deepEqual(s.weaknesses[2]['♥'],{certainty:'suspected',suit:'♥'});
-  assert.deepEqual(s.remembered,{});s=toggleWeakness(s,2,'♥');assert.deepEqual(s.weaknesses[2],{});
-  assert.deepEqual(toggleWeakness(enabled(3),2,'♥').weaknesses,{});
+test('new level 4 has no color weakness marking',()=>{
+ assert.deepEqual(toggleWeakness(enabled(4),2,'♥').weaknesses,{});
+
 });
 test('completion notice only follows pickup/discard, not an ongoing card action',()=>{
   let s=enabled(1),v=publicView({events:[{type:'play',player:1,round:1,card:c('♥6')}]});

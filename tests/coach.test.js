@@ -26,7 +26,7 @@ test('level 1 rejects numeric history; level 2 ignores known opponents and weakn
  assert.equal(coachInput(a,2).knowledge.knownTrumpState.numberOut,1);
  assert.equal(coachInput(b,3).knowledge.knownCardsByPlayer[1][0].id,'♥8');
  assert.equal(coachInput(b,3).knowledge.suspectedSuitWeaknesses.length,0);
- assert.ok(coachInput(b,4).knowledge.suspectedSuitWeaknesses.length);
+ assert.equal(coachInput(b,4).knowledge.suspectedSuitWeaknesses.length,0);
 });
 test('training off never reads source and provides no advice',()=>{
  assert.equal(recommendMove(new Proxy({},{get(){throw Error('OFF');}}),{enabled:false,level:4}).available,false);

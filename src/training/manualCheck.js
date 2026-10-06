@@ -20,7 +20,7 @@ export function createManualCheck(state,view,memory,choice,rng=Math.random){
  const trumps=createCheck(state,view);if(!trumps)return null;
  const opponents=[];
  if(state.level>=3){
-  const known=publicGameKnowledge(view).knownCardsByPlayer,cap=choice==='3b'?2:1;
+  const known=publicGameKnowledge(view).knownCardsByPlayer,cap=(choice==='4'||choice==='3b')?2:1;
   for(const player of [1,2]){
    const count=view.players.find(p=>p.id===player)?.count??0;
    const cards=(memory.active[player]??[]).map(m=>m.card).filter(c=>known[player].some(k=>k.id===c.id)).slice(0,Math.min(cap,count));

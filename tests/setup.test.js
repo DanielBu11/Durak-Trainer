@@ -6,7 +6,7 @@ test('opening a session and changing persisted options never starts a game',()=>
  let calls=0,received;const session=createSession(options=>{calls++;received=options;return {game:{}};});
  const saved=new Map(),storage={getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v)};
  const options={difficulty:'meister',speed:'3000',training:true,level:'3b'};
- savePreferences(storage,options);assert.deepEqual(loadPreferences(storage),options);assert.equal(numericLevel('3b'),3);
+ savePreferences(storage,options);assert.deepEqual(loadPreferences(storage),{...options,level:'4'});assert.equal(numericLevel('3b'),4);
  assert.equal(session.isSetup,true);assert.equal(session.round,null);assert.equal(calls,0);
  session.start(options);assert.equal(calls,1);assert.deepEqual(received,options);assert.equal(session.isSetup,false);
  session.start(options);assert.equal(calls,1);session.setup();assert.equal(calls,1);assert.equal(session.round,null);

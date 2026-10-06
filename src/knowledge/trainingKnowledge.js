@@ -8,7 +8,7 @@ export function trainingKnowledge(source,level){
   return {level,discardedCards:k.discardedCards.filter(c=>c.suit===source.trump&&['J','Q','K','A'].includes(c.rank)),
     knownCardsByPlayer:level>=3?k.knownCardsByPlayer:[[],[],[]],
     knownTrumpState:{facesOut:k.knownTrumpState.facesOut,numberOut:level>=2?k.knownTrumpState.numberOut:null},
-    suspectedSuitWeaknesses:level>=4?k.suspectedSuitWeaknesses:[]};
+    suspectedSuitWeaknesses:[]};
 }
 
 export function knownHandView(source,player,{enabled,level}){

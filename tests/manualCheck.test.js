@@ -97,3 +97,7 @@ test('off, level change and replay restore close quizzes instead of automaticall
  ui.restore(saved,v);assert.equal(dom.dialog.open,false);assert.equal(ui.isPaused(),false);
  ui.cancelMemory();
 });
+
+test('level 4 replaces 3B with two memories and level 3 keeps one',()=>{
+ for(const [choice,mode,counts] of [['3','3a',[1,1]],['4','3b',[2,1]]]){const q=createManualCheck({enabled:true,level:Number(choice)},v,observeMemory(createMemory(mode),v),choice);assert.deepEqual(q.opponents.map(p=>p.required),counts);assert.equal(q.choice,choice);}
+});

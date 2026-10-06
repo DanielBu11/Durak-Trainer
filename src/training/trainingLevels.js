@@ -3,7 +3,7 @@ export const LEVELS = Object.freeze([
   {id: 1, title: 'Hohe Trümpfe', description: 'Verfolge J, Q, K und A auf dem Ablagestapel.', features: ['faces']},
   {id: 2, title: 'Alle Trümpfe', description: 'Merke dir 0–5 Zahlentrümpfe plus J, Q, K, A.', features: ['faces', 'numbers']},
   {id: 3, title: 'Aufgenommene Karten', description: 'Automatisch gewählte bekannte Gegnerkarten merken und später wiedererkennen.', features: ['faces', 'numbers', 'memory']},
-  {id: 4, title: 'Farb-Schwächen', description: 'Ergänze eigene Vermutungen über schwache Farben.', features: ['faces', 'numbers', 'memory', 'weakness']},
+  {id: 4, title: 'Zwei Merkkarten', description: 'Merke dir bis zu zwei bekannte Karten pro Gegner.', features: ['faces', 'numbers', 'memory']},
 ]);
 export const levelDefinition = level => LEVELS.find(l => l.id === Number(level)) ?? LEVELS[0];
 export const hasFeature = (level, feature) => levelDefinition(level).features.includes(feature);

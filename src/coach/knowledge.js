@@ -1,3 +1,4 @@
+import {hasFeature} from '../training/trainingLevels.js';
 import {publicView} from '../bots/view.js';
 import {trainingKnowledge} from '../knowledge/trainingKnowledge.js';
 import {levelDefinition} from '../training/trainingLevels.js';
@@ -9,7 +10,7 @@ export function coachInput(source,level,manualWeaknesses){
   const view=publicView(source,'beginner'); // no raw history or discard identities
   view.stockCount=Number.isInteger(source.stockCount)?source.stockCount:null;
   const knowledge=trainingKnowledge(source,level);
-  if(level>=4&&manualWeaknesses){
+  if(hasFeature(level,'weakness')&&manualWeaknesses){
     for(const player of [1,2])for(const suit of ['♣','♦','♥','♠'])if(manualWeaknesses[player]?.[suit]){
       if(!knowledge.suspectedSuitWeaknesses.some(w=>w.player===player&&w.suit===suit))knowledge.suspectedSuitWeaknesses.push({player,suit,strength:1,certainty:'suspected',source:'user'});
     }

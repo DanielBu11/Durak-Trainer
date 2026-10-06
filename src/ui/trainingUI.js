@@ -1,5 +1,5 @@
 import {createMemoryUI} from './memoryUI.js';
-import {TRAINING_CHOICES,numericLevel} from './setup.js';
+import {TRAINING_CHOICES,numericLevel,normalizeLevel} from './setup.js';
 import {SUITS} from '../game/cards.js';
 import {hasFeature} from '../training/trainingLevels.js';
 import {createTrainingState, configureTraining, observeTraining, toggleWeakness} from '../training/trainingState.js';
@@ -21,7 +21,7 @@ export function createTrainingUI({root, dialog, onChange}) {
   const memory=createMemoryUI({onChange,storage});
   const paused = () => state.enabled && Boolean(quiz);
   function dismiss(){quiz=null;result=null;if(dialog.open)dialog.close();}
-  const setChoice=(value,notify=true)=>{choice=TRAINING_CHOICES.some(([id])=>id===value)?value:'1';state=configureTraining(state,{level:numericLevel(choice)});dismiss();analysisOpen=false;memory.reset();if(notify)redraw();};
+  const setChoice=(value,notify=true)=>{choice=TRAINING_CHOICES.some(([id])=>id===normalizeLevel(value))?normalizeLevel(value):'1';state=configureTraining(state,{level:numericLevel(choice)});dismiss();analysisOpen=false;memory.reset();if(notify)redraw();};
   function redraw(){onChange();}
   function closeCheck(){dismiss();state={...state,completedRound:null};redraw();}
   dialog.querySelector('[data-close-training]').onclick=closeCheck;
@@ -55,14 +55,10 @@ export function createTrainingUI({root, dialog, onChange}) {
     }
     return '<p class="note">Level '+quiz.choice.toUpperCase()+' · Spiel pausiert. Nur abgelegte Karten zählen als raus.</p>'+body+'<div class="quiz-actions">'+(result?'<p role="status">'+(result.correct?'Alles richtig ✓':'Ergebnisse oben ansehen')+'</p><button data-action="close">Weiter</button>':'<button data-action="submit" '+(manualAnswerComplete(quiz,answer)?'':'disabled')+'>Prüfen</button>')+'</div>';
   }
-  function weaknessMarkup() {
-    if (!hasFeature(state.level,'weakness')) return '';
-    return `<section class="weakness-section"><h3>Vermutete Farb-Schwäche</h3><p class="note">„Vermutlich schwach oder leer“ ist kein Kartenbeweis: Ein Gegner kann freiwillig Trumpf spielen oder aufnehmen. Diese Markierungen werden nicht als richtig/falsch bewertet.</p><div class="training-opponents">${[1,2].map(id=>`<article><h4>${opponent(id)}</h4><div class="touch-options">${SUITS.map(s=>`<button data-weak-player="${id}" data-weak-suit="${s}" aria-pressed="${Boolean(state.weaknesses[id]?.[s])}">${s} ${suitNames[s]}${state.weaknesses[id]?.[s]?' · vermutet':''}</button>`).join('')}</div></article>`).join('')}</div></section>`;
-  }
   function render() {
     root.hidden = !state.enabled;
     if (!state.enabled || !view) {root.replaceChildren(); return;}
-    root.innerHTML = memory.markup()+weaknessMarkup();
+    root.innerHTML = memory.markup();
     dialog.querySelector('[data-training-content]').innerHTML=quizMarkup();
     root.querySelectorAll('[data-panel]').forEach(el=>el.ontoggle=()=>{if(el.dataset.panel==='analysis')analysisOpen=el.open;else statsOpen=el.open;});
     [...root.querySelectorAll('button'),...dialog.querySelectorAll('[data-training-content] button')].forEach(button=>button.onclick=()=>{
@@ -91,7 +87,7 @@ export function createTrainingUI({root, dialog, onChange}) {
     suspendMemory:()=>memory.suspend(),
     getWeaknesses:()=>structuredClone(state.weaknesses),
     isPaused: paused,
-    update(publicView,{ready=true}={}) {canOpen=ready;view=publicView;state=observeTraining(state,view);memory.update(view,{enabled:state.enabled&&hasFeature(state.level,'memory'),mode:choice==='3b'?'3b':'3a',ready:ready&&!quiz});render();},
+    update(publicView,{ready=true}={}) {canOpen=ready;view=publicView;state=observeTraining(state,view);memory.update(view,{enabled:state.enabled&&hasFeature(state.level,'memory'),mode:choice==='4'?'3b':'3a',ready:ready&&!quiz});render();},
     setEnabled(enabled) {dismiss();memory.reset();state={...configureTraining(state,{enabled}),completedRound:null};quiz=null;result=null;analysisOpen=false;redraw();},
     reset(publicView) {dismiss();memory.reset();state={...createTrainingState(),enabled:state.enabled,level:state.level};quiz=null;answer=null;result=null;analysisOpen=false;view=publicView;render();},
   };

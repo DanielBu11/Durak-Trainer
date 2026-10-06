@@ -207,3 +207,6 @@ Referenz: https://docs.github.com/en/pages/getting-started-with-github-pages/usi
 ### Sichtbare Versionsnummer
 
 Die Versionsnummer steht zentral in `dist/index.html` bei `id="app-version"`, aktuell **01.01**. Bei kleinen Änderungen die hintere Zahl erhöhen (01.02), bei großen Änderungen die vordere Zahl erhöhen und die hintere auf 00 setzen (02.00). Beide Teile werden zweistellig angezeigt. Bei jeder veröffentlichten Änderung diese Nummer mit aktualisieren. Der Build prüft das Format; für den Offline-Cache bleibt zusätzlich ein automatisch berechneter interner Inhaltshash erhalten.
+### Trainingslevel ab Version 02.03
+
+Die aktuelle Auswahl ist Level 1, 2, 3 und 4. Level 3 entspricht dem bisherigen 3A (eine Merkkarte pro Gegner), Level 4 dem bisherigen 3B (bis zu zwei Merkkarten pro Gegner). Das frühere Level 4 mit Farb-Schwächen entfällt. Gespeicherte Auswahlen 3A/3B werden auf 3/4 migriert. Interne Merkkarten- und Statistikschlüssel 3a/3b bleiben für die Datenkompatibilität bestehen.
