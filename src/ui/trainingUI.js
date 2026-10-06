@@ -42,7 +42,7 @@ export function createTrainingUI({root, dialog, onChange}) {
   }
   function quizMarkup(){
     if(!quiz)return '';
-    const yes=correct=>correct?'richtig ✓':'falsch';
+    const yes=correct=>'<span class="quiz-verdict '+(correct?'is-correct':'is-incorrect')+'"><span aria-hidden="true">'+(correct?'✓':'✕')+'</span> '+(correct?'richtig':'falsch')+'</span>';
     let body='';
     if(quiz.trumps.includeNumbers)body+='<section data-question="numbers"><h3>Wie viele Zahlentrümpfe 6–10 sind raus?</h3>'+(result?'<p>Zahlentrümpfe: '+yes(result.trumps.numberCorrect)+' · Lösung: '+quiz.trumps.solution.number+'</p>':'<div class="touch-options">'+[0,1,2,3,4,5].map(n=>'<button data-number="'+n+'" aria-pressed="'+(answer.number===n)+'">'+n+'</button>').join('')+'</div>')+'</section>';
     body+='<section data-question="faces"><h3>Welche hohen Trümpfe sind raus?</h3>'+(result?'<p>'+Object.entries(result.faces).map(([rank,correct])=>rank+': '+yes(correct)).join(' · ')+'</p><p>Raus: '+(quiz.trumps.solution.faces.join(', ')||'keiner')+'</p>':'<div class="touch-options">'+['J','Q','K','A'].map(r=>'<button data-face="'+r+'" aria-pressed="'+answer.faces.includes(r)+'">'+r+' '+view.trump+'</button>').join('')+'</div><small>Mehrfachauswahl · keine Auswahl bedeutet: keiner.</small>')+'</section>';
