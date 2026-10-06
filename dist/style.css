@@ -80,3 +80,6 @@ body:has(#play-tools:not([hidden])){padding-bottom:0}
 
 /* Loaded build identity remains visible offline at the end of the page. */
 footer{flex-wrap:wrap}.app-version{flex-basis:100%;text-align:center;font-size:11px;letter-spacing:.4px;overflow-wrap:anywhere;color:var(--muted);padding-top:4px}
+
+/* The manual level check is the single visible training action for now. */
+#quiz-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;min-height:44px;padding:7px 10px;border:1px solid #e5ba6c;border-radius:8px;background:#e5ba6c;color:#20392e;font-size:12px;font-weight:700}#quiz-trigger .quiz-symbol{display:grid;place-items:center;width:22px;height:22px;border:1px solid currentColor;border-radius:50%;font-size:17px;line-height:1}
