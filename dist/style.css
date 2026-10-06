@@ -94,3 +94,6 @@ footer{flex-wrap:wrap}.app-version{flex-basis:100%;text-align:center;font-size:1
 .eye svg{display:block;margin:auto;pointer-events:none}
 
 .stock>small.trump-symbol{font-size:34px;line-height:1;color:#f0dbab;width:58px;text-align:center}.stock{min-height:146px}@media(max-width:650px){.stock>small.trump-symbol{font-size:30px;width:41px}.stock{min-height:122px}}
+
+/* Suit colors on a light badge stay legible against the green table. */
+.stock>small.trump-symbol{background:#fffdf7;border-radius:6px;padding:2px 0}.stock>small.trump-red{color:#bb302f}.stock>small.trump-black{color:#161c19}

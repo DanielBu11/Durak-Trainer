@@ -117,7 +117,7 @@ function render(){
   const stock=stockDisplay(state);$('stock').classList.toggle('is-empty',!stock.count);$('stock').replaceChildren();
   if(stock.card)$('stock').append(card(stock.card));else{const empty=document.createElement('span');empty.className='empty-stock';empty.textContent='Leer';$('stock').append(empty);}
   if(stock.count>1){const back=document.createElement('span');back.className='back';back.innerHTML='<span class=stock-count>'+stock.count+'</span>';$('stock').append(back);}
-  const label=document.createElement('small');label.className='trump-symbol';label.textContent=state.trump;label.setAttribute('aria-label','Trumpf: '+suitName[state.trump]);$('stock').append(label);
+  const label=document.createElement('small');label.className='trump-symbol '+(['♥','♦'].includes(state.trump)?'trump-red':'trump-black');label.textContent=state.trump;label.setAttribute('aria-label','Trumpf: '+suitName[state.trump]);$('stock').append(label);
   $('stock').disabled=!canInspectStock(training,paused);
   $('stock').setAttribute('aria-label',training?'Welche Karten sind aus dem Spiel?':'Nachziehstapel · Trumpf '+state.trump);
   if(!training&&$('discard-dialog').open)$('discard-dialog').close();
