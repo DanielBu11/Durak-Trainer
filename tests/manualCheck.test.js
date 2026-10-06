@@ -61,15 +61,24 @@ function dialogFixture(){
  const root={hidden:false,innerHTML:'',replaceChildren(){this.innerHTML='';},querySelectorAll:()=>[]};
  return {dialog,root,content,close,listeners};
 }
-test('controller opens only manually, evaluates once on Prüfen and stays open until explicit close',()=>{
+test('controller opens only manually, evaluates once on Prüfen and stays open until explicit close',t=>{
+ // Reproducible options, including cards repeated across different opponents.
+ let seed=7,overlappingOptions=0;
+ t.mock.method(Math,'random',()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296));
+ for(let iteration=0;iteration<100;iteration++){
  const dom=dialogFixture();let ui;
  ui=createTrainingUI({...dom,onChange(){ui.update(v);}});ui.setChoice('3b',false);ui.setEnabled(true);
  assert.equal(dom.dialog.open,false);assert.equal(ui.isPaused(),false);
  for(let i=0;i<10;i++)ui.update(v);assert.equal(dom.dialog.opens,0);
  ui.begin();assert.equal(dom.dialog.open,true);assert.equal(ui.isPaused(),true);
  assert.equal((dom.content.html.match(/data-question=/g)??[]).length,4);
- const click=(key,value)=>{const b=dom.content.buttons.find(b=>b.dataset[key]===value);assert.ok(b);assert.equal(b.disabled,false);b.onclick();};
- click('number','2');click('face','Q');for(const id of ['♠J','♥K','♦A'])click('card',id);
+ const click=(key,value,player)=>{const b=dom.content.buttons.find(b=>b.dataset[key]===value&&(player===undefined||b.dataset.player===String(player)));assert.ok(b);assert.equal(b.disabled,false);b.onclick();};
+ const questions=ui.snapshot().quiz.opponents;
+ if(questions[0].options.some(c=>c.id==='♦A'))overlappingOptions++;
+ click('number','2');click('face','Q');
+ // Card identity alone is ambiguous: choose in the intended opponent's section.
+ for(const id of ['♠J','♥K'])click('card',id,1);
+ click('card','♦A',2);
  assert.equal(ui.snapshot().result,null);click('action','submit');
  assert.equal(ui.snapshot().result.correct,true);assert.equal(ui.snapshot().stats.checks,1);
  for(let i=0;i<10;i++)ui.update(v);
@@ -77,6 +86,8 @@ test('controller opens only manually, evaluates once on Prüfen and stays open u
  assert.ok(dom.content.html.includes('Alles richtig'));click('action','close');
  assert.equal(dom.dialog.open,false);assert.equal(ui.isPaused(),false);
  ui.cancelMemory();
+ }
+ assert.ok(overlappingOptions>0,'Exercise the same card in both opponent sections');
 });
 test('off, level change and replay restore close quizzes instead of automatically reopening them',()=>{
  const dom=dialogFixture();let ui;ui=createTrainingUI({...dom,onChange(){ui.update(v);}});
