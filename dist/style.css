@@ -83,3 +83,12 @@ footer{flex-wrap:wrap}.app-version{flex-basis:100%;text-align:center;font-size:1
 
 /* The manual level check is the single visible training action for now. */
 #quiz-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;min-height:44px;padding:7px 10px;border:1px solid #e5ba6c;border-radius:8px;background:#e5ba6c;color:#20392e;font-size:12px;font-weight:700}#quiz-trigger .quiz-symbol{display:grid;place-items:center;width:22px;height:22px;border:1px solid currentColor;border-radius:50%;font-size:17px;line-height:1}
+
+/* Player roles are independent of who currently has the next action. */
+.opponent{border:2px solid transparent;border-radius:10px;padding:4px;min-width:0}
+.opponent.role-attacker{border-color:#73b58a}.opponent.role-defender{border-color:#d68179}
+.hand-title{border:2px solid transparent;border-radius:8px;padding:5px 7px}
+.hand-title.role-attacker{border-color:#398551}.hand-title.role-defender{border-color:#b85750}
+#quiz-trigger{width:44px;min-width:44px;height:44px;padding:0;background:#ffffff09;color:#d0e1d6;border-color:#92b4a166;box-shadow:none}
+#quiz-trigger .quiz-symbol{width:25px;height:25px;border-color:currentColor;font-size:18px}
+.eye svg{display:block;margin:auto;pointer-events:none}
