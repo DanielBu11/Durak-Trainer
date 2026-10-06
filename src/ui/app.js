@@ -28,7 +28,7 @@ let coachAdvice=null,coachStamp=null;
 const revealed=new Set(), revealTimers=new Map();
 function clearReveals(){revealed.clear();for(const t of revealTimers.values())clearTimeout(t);revealTimers.clear();}
 function revealHand(id){clearTimeout(revealTimers.get(id));if(revealed.has(id))revealed.delete(id);else{revealed.add(id);revealTimers.set(id,setTimeout(()=>{revealed.delete(id);render();},8000));}render();}
-const trainingUI=createTrainingUI({root:$('training-panel'),onChange:()=>{if(trainingUI.isPaused())clearReveals();persist();render();}});
+const trainingUI=createTrainingUI({root:$('training-panel'),dialog:$('training-dialog'),onChange:()=>{if(trainingUI.isPaused())clearReveals();persist();render();}});
 function snapshot(){return {game:state,training:trainingUI.snapshot(),difficulty:$('difficulty').value};}
 function move(action){
   if(!state||trainingUI.isPaused()||moving)return;
@@ -49,7 +49,7 @@ function move(action){
   }catch(error){$('status').textContent=error.message;}
 }
 function navigateHistory(index){
-  if(!state||!history)return;trainingUI.suspendMemory();
+  if(!state||!history)return;trainingUI.suspendMemory();if($('coach-dialog').open)$('coach-dialog').close();
   botScheduler.cancel();motionEpoch++;cancelMotion();eventFeedback.cancel();moving=false;clearReveals();selected=null;
   clearTimeout(feedbackTimer);$('move-feedback').textContent='';
   history.replace(snapshot());const saved=history.go(index);state=saved.game;
@@ -78,11 +78,15 @@ function schedule(){botScheduler.cancel();if(state && !moving && !history?.isPas
 function render(){
   $('setup-view').hidden=Boolean(state);$('game-view').hidden=!state;$('new').hidden=!state;
   $('setup-level').value=trainingUI.getChoice();$('setup-level').disabled=!$('training').checked;
+  $('play-tools').hidden=!state||!$('training').checked;
   if(!state){botScheduler.cancel();return;}
   trainingUI.update(observation(state,0),{ready:!moving&&!history?.isPast});
   const blocked=trainingUI.blockedPlayer();if(blocked)revealed.delete(blocked);
   const actions=legalActions(state), paused=trainingUI.isPaused(), human=state.actor===0&&!state.finished&&!paused&&!moving, training=$('training').checked;
   const publicState=observation(state,0),level=trainingUI.getLevel();
+  $('quiz-trigger').disabled=moving||paused||Boolean(history?.isPast)||state.finished;
+  $('coach-trigger').disabled=!human||paused;
+  if(!training&&$('coach-dialog').open)$('coach-dialog').close();
   $('round').textContent=`Runde ${state.round}`;
   for(const id of [1,2]) {
     const p={...publicState.players[id],name:state.players[id].name}, root=$(`bot${id}`);root.className=`opponent ${state.actor===id&&!state.finished&&!paused?'active-player':''}`;
@@ -111,17 +115,22 @@ function render(){
   if(paused){$('status').textContent='Training · Spiel pausiert';$('hint').textContent='Prüfe deine Antwort oder überspringe den Check, um weiterzuspielen.';}
   const stamp=JSON.stringify([state.events.length,state.actor,state.phase,history?.index,history?.length,level,training,level>=4?trainingUI.getWeaknesses():null]);
   if(coachStamp!==stamp){coachAdvice=null;coachStamp=stamp;}
-  renderCoachUI($('coach-panel'),{enabled:training,level,ready:human&&!paused,advice:coachAdvice,onRequest:()=>{
-    coachAdvice=recommendMove(observation(state,0),{enabled:training,level,manualWeaknesses:level>=4?trainingUI.getWeaknesses():undefined});render();
-  }});
+  renderCoachUI($('coach-panel'),{enabled:training,level,advice:coachAdvice});
   if(history)renderHistory();schedule();showResult();
 }
+$('quiz-trigger').onclick=()=>{if(!state||moving)return;clearReveals();if($('coach-dialog').open)$('coach-dialog').close();trainingUI.begin();};
+$('coach-trigger').onclick=()=>{
+  if(!state||moving||trainingUI.isPaused()||!$('training').checked||state.actor!==0||state.finished)return;
+  const level=trainingUI.getLevel();coachAdvice=recommendMove(observation(state,0),{enabled:true,level,manualWeaknesses:level>=4?trainingUI.getWeaknesses():undefined});
+  render();$('coach-dialog').showModal();
+};
+$('close-coach').onclick=()=>$('coach-dialog').close();
 $('stock').onclick=()=>{if(!state)return;if(!canInspectStock($('training').checked,trainingUI.isPaused()))return;renderDiscardOverview($('discard-overview'),state.discarded);$('discard-dialog').showModal();};
 $('close-discard').onclick=()=>$('discard-dialog').close();
 $('discard-dialog').onclick=e=>{if(e.target===$('discard-dialog'))$('discard-dialog').close();};
 $('take').onclick=()=>move({type:'take'});$('pass').onclick=()=>move({type:'pass'});$('step').onclick=botStep;
 function cancelRoundWork(){
-  trainingUI.cancelMemory();
+  trainingUI.cancelMemory();if($('coach-dialog').open)$('coach-dialog').close();
   coachAdvice=null;coachStamp=null;
   botScheduler.cancel();motionEpoch++;moving=false;
   cancelMotion();eventFeedback.cancel();clearReveals();selected=null;
@@ -155,7 +164,7 @@ $('result-review').onclick=()=>{if(!$('training').checked)return;$('result-dialo
 $('result-dialog').addEventListener('cancel',event=>event.preventDefault());
 $('training').onchange=()=>{clearReveals();trainingUI.setEnabled($('training').checked);};$('speed').onchange=scheduleAndRender;function scheduleAndRender(){persist();render();}$('difficulty').onchange=()=>{persist();schedule();};
 $('difficulty').value=preferences.difficulty;$('speed').value=preferences.speed;$('training').checked=preferences.training;
-$('setup-level').innerHTML=TRAINING_CHOICES.map(([id,title])=>'<option value="'+id+'">'+title+'</option>').join('');
+$('setup-level').innerHTML=TRAINING_CHOICES.map(([id,title])=>'<option value="'+id+'" title="'+title+'">'+id.toUpperCase()+'</option>').join('');
 trainingUI.setChoice(preferences.level,false);trainingUI.setEnabled(preferences.training);
 $('setup-level').onchange=()=>trainingUI.setChoice($('setup-level').value);
 $('history-back').onclick=()=>navigateHistory(history.index-1);$('history-forward').onclick=()=>navigateHistory(history.index+1);

@@ -1,10 +1,5 @@
 export function renderCoachUI(root,{enabled,level,ready,advice,onRequest}){
   root.hidden=!enabled;root.replaceChildren();if(!enabled)return;
-  const heading=document.createElement('div');heading.className='coach-heading';
-  const title=document.createElement('h3');title.textContent=`Spielhilfe · Level ${level}`;
-  const button=document.createElement('button');button.textContent='Tipp anzeigen';button.disabled=!ready;button.onclick=onRequest;
-  heading.append(title,button);root.append(heading);
-  if(!ready){const note=document.createElement('p');note.textContent='Tipps sind an deinem Zug verfügbar, außerhalb eines Trainingschecks.';root.append(note);}
   if(!advice?.available)return;
   const result=document.createElement('div');result.className='coach-result';result.setAttribute('role','status');
   const label=document.createElement('strong');label.textContent=advice.label;result.append(label);

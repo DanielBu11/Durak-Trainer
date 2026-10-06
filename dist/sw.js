@@ -1,4 +1,4 @@
-const VERSION = 'development-v18';
+const VERSION = 'development-v19';
 const PREFIX = `durak-pwa:${self.registration.scope}:`;
 const CACHE = PREFIX + VERSION;
 /* ASSETS_START */
@@ -9,6 +9,7 @@ ASSETS.push('./src/ui/audioUI.js',...['config','manager','events'].map(name=>`./
 ASSETS.push('./src/knowledge/publicGameKnowledge.js','./src/knowledge/trainingKnowledge.js','./src/planning/publicLines.js','./src/coach/knowledge.js','./src/coach/evaluation.js','./src/coach/coach.js','./src/ui/coachUI.js');
 ASSETS.push('./src/coach/planning.js');
 ASSETS.push('./src/ui/setup.js','./src/ui/memoryUI.js','./src/training/automaticMemory.js');
+ASSETS.push('./src/training/manualCheck.js');
 /* ASSETS_END */
 /* AUDIO_START */
 const AUDIO_ASSETS=['card-play','card-defend','card-draw','cards-pickup','discard','shuffle','win','lose'].map(name=>`./assets/audio/sfx/${name}.mp3`).concat('./assets/audio/music/background.mp3');
