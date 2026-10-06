@@ -75,6 +75,9 @@ test('cache upgrades remove only old versions of this exact app scope',async()=>
   await h.lifecycle('install');await h.lifecycle('activate');assert.deepEqual(h.deleted,[old]);assert.ok(h.stores.has(other));assert.ok(h.stores.has('unrelated-cache'));
 });
 test('build is reproducible and cache version reflects production content',async()=>{
+  const html=await readFile(path.join(outputRoot,'index.html'),'utf8');
+  assert.ok(html.includes('Version: '+production.version));
+  assert.ok(!html.includes('Version: lokale Entwicklung'));
   assert.match(production.version,/^[a-f0-9]{16}$/);assert.ok(worker.includes(production.version));
   const next=await build();assert.equal(next.version,production.version);
   assert.ok(production.assets.includes('src/training/trainingStats.js'));

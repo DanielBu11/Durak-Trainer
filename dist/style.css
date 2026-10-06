@@ -63,7 +63,7 @@ body:has(#play-tools:not([hidden])){padding-bottom:0}
   .mobile-game .opponent-header small{min-height:14px}.mobile-game .opponent-header{padding:0 2px}
   .mobile-game .event-feedback-slot{min-height:54px;margin:0;position:relative;top:auto}
   .mobile-game .event-feedback{padding:5px 8px}.mobile-game .event-feedback strong{font-size:16px}.mobile-game .event-feedback small{margin-top:2px}
-  .mobile-game .table-layout{min-height:172.8px;padding:4px 0 8px;gap:6px}.mobile-game .table-cards{min-height:100px;gap:10px 12px}.mobile-game .eyebrow{margin-bottom:7px}
+  .mobile-game .table-layout{min-height:210px;padding:4px 0 8px;gap:6px}.mobile-game .table-cards{min-height:100px;gap:10px 12px}.mobile-game .eyebrow{margin-bottom:7px}
   .mobile-game .empty-table{min-height:90px;padding:8px;font-size:11px}
   .mobile-game .status-row{padding:8px 0;gap:6px;align-items:start}.mobile-game .status-row strong{font-size:12px}.mobile-game .status-row p{margin:3px 0 0;line-height:1.35;font-size:11px}.mobile-game .status-dot{margin-right:4px}
   .mobile-game .status-row .actions{gap:6px}.mobile-game .actions button{padding:6px 4px}
@@ -77,3 +77,6 @@ body:has(#play-tools:not([hidden])){padding-bottom:0}
 
 /* Quiz feedback remains readable without relying on color alone. */
 .quiz-verdict{display:inline-flex;align-items:center;gap:4px;font-weight:700;padding:3px 7px;border-radius:5px;margin:2px 0}.quiz-verdict.is-correct{color:#176334;background:#e4f3e7}.quiz-verdict.is-incorrect{color:#a12626;background:#fbe7e7}.quiz-verdict>span{font-size:17px;font-weight:800}
+
+/* Loaded build identity remains visible offline at the end of the page. */
+footer{flex-wrap:wrap}.app-version{flex-basis:100%;text-align:center;font-size:11px;letter-spacing:.4px;overflow-wrap:anywhere;color:var(--muted);padding-top:4px}

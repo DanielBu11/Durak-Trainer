@@ -30,6 +30,11 @@ export async function build() {
   const hash=createHash('sha256').update(worker);
   for(const asset of assets) hash.update(asset).update(await readFile(path.join(outputRoot,asset)));
   const version=hash.digest('hex').slice(0,16);
+  // Stamp the cached HTML with the same content identity as the service worker.
+  // Hash the unstamped sources above so repeated builds stay reproducible.
+  const indexPath=path.join(outputRoot,'index.html');
+  const index=await readFile(indexPath,'utf8');
+  await writeFile(indexPath,index.replace('Version: lokale Entwicklung', 'Version: '+version));
   const generated=worker.replace(/const VERSION = '[^']+';/,`const VERSION = '${version}';`)
     .replace(/\/\* ASSETS_START \*\/[\s\S]*?\/\* ASSETS_END \*\//,`/* ASSETS_START */\nconst ASSETS = ${JSON.stringify(assets.filter(f=>!f.endsWith('.mp3')).map(f=>'./'+f))};\n/* ASSETS_END */`)
     .replace(/\/\* AUDIO_START \*\/[\s\S]*?\/\* AUDIO_END \*\//,`/* AUDIO_START */\nconst AUDIO_ASSETS = ${JSON.stringify(assets.filter(f=>f.endsWith('.mp3')).map(f=>'./'+f))};\n/* AUDIO_END */`);
