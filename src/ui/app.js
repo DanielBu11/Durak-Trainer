@@ -85,9 +85,9 @@ function placeSettings(){
   const compact=Boolean(state)&&mobileLayout.matches;
   document.body.classList.toggle('mobile-game',compact);
   $('settings-trigger').hidden=!compact;
-  const controls=$('game-settings');
-  if(compact){if(controls.parentElement!==$('settings-content'))$('settings-content').append(controls);}
-  else {if($('settings-dialog').open)$('settings-dialog').close();$('settings-home').after(controls);}
+  const controls=$('game-settings'),audioControls=$('audio-settings');
+  if(compact){if(controls.parentElement!==$('settings-content'))$('settings-content').append(controls);if(audioControls.parentElement!==$('settings-content'))$('settings-content').append(audioControls);}
+  else {if($('settings-dialog').open)$('settings-dialog').close();$('settings-home').after(controls);if(audioControls.previousElementSibling!==$('audio-home'))$('audio-home').after(audioControls);}
 }
 mobileLayout.addEventListener('change',placeSettings);
 $('settings-trigger').onclick=()=>$('settings-dialog').showModal();
