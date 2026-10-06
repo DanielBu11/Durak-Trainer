@@ -1,0 +1,32 @@
+/* Presentation only: felt, warm paper and restrained brass details. */
+:root{--paper:#f6f2e9;--ink:#153c32;--accent:#edc779;--muted:#718077}
+body{background:radial-gradient(ellipse at top,#fffcf5,#f2eee5 85%)}
+.brand{font-family:Georgia,serif;letter-spacing:3px}.brand-mark{background:linear-gradient(135deg,#315b43,#092f26);color:#f4cd7d;border:1px solid #a4ad83;box-shadow:inset 0 0 12px #f4d58a16}
+#new{background:linear-gradient(145deg,#ffe5a9,#e9bf70);border:1px solid #cca24e;box-shadow:0 2px 3px #6b522225;color:#18382e}
+#settings-trigger{border:1px solid #d9d1c2!important;border-radius:50%;background:transparent;width:44px}
+.history-controls button{border-color:#dcd4c5;background:#fffdf53d;border-radius:10px}.history-controls button:disabled{opacity:.4}
+.arena{position:relative;isolation:isolate;background:radial-gradient(ellipse at 45% 40%,#1b5343 0%,#0a382d 70%,#052b23 100%);border:1px solid #677f58;border-radius:22px;box-shadow:inset 0 0 35px #001e1980,0 8px 20px #163c3012;padding:18px 18px 12px}
+.arena:before{content:'';position:absolute;inset:10px;border:1px solid #b6a45b42;border-radius:18px;pointer-events:none;z-index:-1;background:repeating-linear-gradient(35deg,#ffffff02 0 1px,transparent 1px 4px)}
+.table-layout{position:relative}.table-layout:before{content:'♠';position:absolute;top:4%;left:50%;transform:translateX(-50%);font:90px Georgia,serif;color:#c6ae5d12;pointer-events:none;z-index:-1}
+.opponent{background:linear-gradient(135deg,#ffffff04,#001b1b24);border:1px solid #acac694b;border-radius:15px;padding:10px;box-shadow:inset 0 0 15px #0c201519}
+.opponent.role-attacker{border:2px solid #8abd91;box-shadow:0 0 10px #ddc57120,inset 0 0 12px #89b97418}.opponent.role-defender{border:2px solid #ce8b7e}
+.opponent-header .avatar{background:radial-gradient(circle,#244d41,#062e29);border:1px solid #e9c575;color:#efcc7e;width:38px;height:38px;font-size:25px;box-shadow:0 2px 5px #001a1b40}
+.opponent-header.active-player,.active-player .opponent-header{background:transparent}
+.backs{margin-top:9px}.back{background:repeating-linear-gradient(45deg,#c1b37632 0 1px,transparent 1px 7px),linear-gradient(120deg,#3d6250,#214539);border-color:#e4d7b7;box-shadow:1px 2px 3px #001d2066}
+.card{background:linear-gradient(115deg,#fffefa,#f5f0e3);border-color:#d7c9aa;color:#122f28;border-radius:7px;box-shadow:0 3px 6px #001d2438}.card.red{color:#b92f2e}
+.stock-count{border-color:#d1bb7a;color:#fff9e5;background:#123c30}.eyebrow{color:#bdcbb9;letter-spacing:1.6px}
+.status-row{background:linear-gradient(125deg,#ffffff06,#001b181f);border:1px solid #a1ab6b65;border-radius:15px;padding:12px;margin:0 -5px;gap:8px}.status-dot{background:linear-gradient(#ffe8b0,#e2b65e);width:8px;height:8px}
+.actions #take{background:linear-gradient(135deg,#ffdfa0,#e5b45e);border-color:#ffe1a1;color:#18372c;box-shadow:0 2px 4px #001e2233}.actions #pass,.actions #step{background:#ffffff03;border-color:#a7baa256}.actions button{border-radius:10px;min-height:48px}
+#quiz-trigger{border:0;background:transparent;border-radius:50%;color:#e0e9d5}#quiz-trigger .quiz-symbol{width:29px;height:29px;border-color:#bcbe8077}
+.hand-section{background:linear-gradient(120deg,#fffdf6,#f5f0e6);border:1px solid #e9e3d5;border-radius:20px;margin-top:9px;padding:12px;box-shadow:0 6px 18px #4b463b0a}
+.hand-title{border:0;border-left:3px solid transparent;border-radius:5px;padding:5px 7px}.hand-title.role-attacker{border-left-color:#398551}.hand-title.role-defender{border-left-color:#b85750}
+#your-role{border:1px solid #ddd5c6;border-radius:20px;padding:4px 7px;font-size:9px}.hand .card:not(:disabled){border-color:#679277;box-shadow:0 3px 7px #264e3429}.hand .card:disabled{opacity:.66}
+@media(max-width:650px){
+ .mobile-game header{min-height:62px}.mobile-game .brand{font-size:22px}.mobile-game .brand-mark{width:34px;height:39px;font-size:28px}
+ .mobile-game .arena{padding:12px 10px 9px;border-radius:20px}.mobile-game .opponents{gap:8px}.mobile-game .opponent{padding:6px;min-width:0}
+ .mobile-game .opponent-header{grid-template-columns:30px 30px minmax(0,1fr);gap:2px}.mobile-game .opponent-header:not(:has(.eye)){grid-template-columns:30px minmax(0,1fr)}.mobile-game .opponent-header .avatar{width:29px;height:29px;font-size:22px}.mobile-game .opponent-header .eye{min-width:30px;width:30px}.eye svg{width:19px}
+ .mobile-game .opponent-header h2{font-size:12px}.mobile-game .opponent-header small{font-size:9px}.mobile-game .backs{margin-top:7px}
+ .mobile-game .table-layout{min-height:252px}.mobile-game .status-row{padding:8px 9px;margin:0 -4px}.mobile-game .status-row strong{font-size:13px}.mobile-game .actions button{font-size:12px;min-height:46px}
+ .mobile-game .hand-section{padding:8px 6px 12px}.mobile-game .hand-title{margin-bottom:8px}.mobile-game .hand-title h1{font-size:13px}.mobile-game .hand-title h1 span{font-size:10px;margin-left:3px}
+}
+@media(max-width:360px){.mobile-game .opponent{padding:4px}.mobile-game .opponent-header h2{font-size:11px}.mobile-game .brand{font-size:19px}.mobile-game .hand-title h1{font-size:12px}#your-role{font-size:8px;padding:4px}.mobile-game .hand .card{width:47px;min-width:47px}}
