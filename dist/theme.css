@@ -19,7 +19,7 @@ body{background:radial-gradient(ellipse at top,#fffcf5,#f2eee5 85%)}
 .actions #take{background:linear-gradient(135deg,#ffdfa0,#e5b45e);border-color:#ffe1a1;color:#18372c;box-shadow:0 2px 4px #001e2233}.actions #pass,.actions #step{background:#ffffff03;border-color:#a7baa256}.actions button{border-radius:10px;min-height:48px}
 #quiz-trigger{border:0;background:transparent;border-radius:50%;color:#e0e9d5}#quiz-trigger .quiz-symbol{width:29px;height:29px;border-color:#bcbe8077}
 .hand-section{background:linear-gradient(120deg,#fffdf6,#f5f0e6);border:1px solid #e9e3d5;border-radius:20px;margin-top:9px;padding:12px;box-shadow:0 6px 18px #4b463b0a}
-.hand-title{border:0;border-left:3px solid transparent;border-radius:5px;padding:5px 7px}.hand-title.role-attacker{border-left-color:#398551}.hand-title.role-defender{border-left-color:#b85750}
+.hand-title{border:0;border-left:0;border-radius:5px;padding:5px 7px}.hand-title.role-attacker{border-left-color:#398551}.hand-title.role-defender{border-left-color:#b85750}
 #your-role{border:1px solid #ddd5c6;border-radius:20px;padding:4px 7px;font-size:9px}.hand .card:not(:disabled){border-color:#679277;box-shadow:0 3px 7px #264e3429}.hand .card:disabled{opacity:.66}
 @media(max-width:650px){
  .mobile-game header{min-height:62px}.mobile-game .brand{font-size:22px}.mobile-game .brand-mark{width:34px;height:39px;font-size:28px}
@@ -39,7 +39,7 @@ body{background:radial-gradient(ellipse at top,#fffcf5,#f2eee5 85%)}
 .opponent-header:not(:has(.eye)){grid-template-columns:38px minmax(0,1fr)}
 .opponent-header:not(:has(.eye)) h2{grid-column:2}
 .hand-section{border-radius:14px;background:linear-gradient(115deg,#fffcf5,#f5f1e8);box-shadow:0 3px 10px #433c2510}
-.hand-title{width:fit-content;max-width:100%;margin:0 auto 6px;gap:12px;padding:2px 6px;min-height:24px}.hand-title h1{font-size:12px}.hand-title #your-role{font-size:8px;padding:2px 6px;background:transparent}.hand-title h1 span{font-size:10px}
+.hand-title{width:100%;max-width:100%;margin:0 0 6px;gap:12px;padding:2px 6px;min-height:24px}.hand-title h1{font-size:12px}.hand-title #your-role{font-size:8px;padding:2px 6px;background:transparent}.hand-title h1 span{font-size:10px}
 .arena:before{border-color:#b6a45b38}.card{box-shadow:0 3px 5px #001e2229,inset 0 1px 0 #fff}
 @media(max-width:650px){
  .mobile-game .opponent{padding:7px 6px}.mobile-game .opponent-header{grid-template-columns:29px minmax(0,1fr) 36px;gap:2px 3px}.mobile-game .opponent-header:not(:has(.eye)){grid-template-columns:29px minmax(0,1fr)}
