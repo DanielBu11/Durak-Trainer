@@ -63,7 +63,7 @@ body:has(#play-tools:not([hidden])){padding-bottom:0}
   .mobile-game .opponent-header small{min-height:14px}.mobile-game .opponent-header{padding:0 2px}
   .mobile-game .event-feedback-slot{min-height:54px;margin:0;position:relative;top:auto}
   .mobile-game .event-feedback{padding:5px 8px}.mobile-game .event-feedback strong{font-size:16px}.mobile-game .event-feedback small{margin-top:2px}
-  .mobile-game .table-layout{min-height:210px;padding:4px 0 8px;gap:6px}.mobile-game .table-cards{min-height:100px;gap:10px 12px}.mobile-game .eyebrow{margin-bottom:7px}
+  .mobile-game .table-layout{min-height:252px;padding:4px 0 8px;gap:6px}.mobile-game .table-cards{min-height:100px;gap:10px 12px}.mobile-game .eyebrow{margin-bottom:7px}
   .mobile-game .empty-table{min-height:90px;padding:8px;font-size:11px}
   .mobile-game .status-row{padding:8px 0;gap:6px;align-items:start}.mobile-game .status-row strong{font-size:12px}.mobile-game .status-row p{margin:3px 0 0;line-height:1.35;font-size:11px}.mobile-game .status-dot{margin-right:4px}
   .mobile-game .status-row .actions{gap:6px}.mobile-game .actions button{padding:6px 4px}
